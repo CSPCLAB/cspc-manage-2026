@@ -7,44 +7,48 @@ import { Link } from "react-router-dom";
  * - DB 스키마 느낌:
  *   - Lab_Computers: manufacturer/model/serial_number/notes/is_broken 등
  *   - Repair_Logs: 컴퓨터별 요청 로그
+ *
+ * 🎨 테마: 따뜻한 뉴트럴 (베이지/슬레이트)
  */
 
+// ─── 컬러 팔레트 ──────────────────────────────────────────────────
+// 배경     : #f5f0eb  (따뜻한 오프화이트)
+// 카드     : #fdfaf7  (크림화이트)
+// 테두리   : #e2d9cf  (따뜻한 베이지 보더)
+// 텍스트   : #2d2822  (다크 웜브라운)
+// 서브텍스트: #7a6e64  (미디엄 웜브라운)
+// 액센트   : #5c5248  (슬레이트 브라운 - 버튼/활성)
+// 선택(PC) : #3d342c  (딥 워머 슬레이트)
+// 정상(초록): #c8e6c4 / #2a5c30
+// 고장(빨강): #f0c4c4 / #7c2424
+// ─────────────────────────────────────────────────────────────────
+
 export default function D104() {
-
   const COLS = 10;
-  const PODIUM_ROW_INDEX = 5; // 전자교탁 라벨 줄(0부터 세서 6번째 줄)
+  const PODIUM_ROW_INDEX = 5;
 
-  // 한 줄(row) 만들기: start가 있으면 start~start+9 / 없으면 빈칸 10개
   const rowNums = (start) =>
     start == null
       ? Array(COLS).fill(null)
       : Array.from({ length: COLS }, (_, i) => start + i);
 
-  // 전체 배치: (1~20) -> 통로 -> (21~40) -> 전자교탁줄 -> (41~60) -> 통로 -> (61~80)
   const grid = useMemo(
     () => [
       rowNums(1),
       rowNums(11),
-
-      rowNums(null), // 통로
-
+      rowNums(null),
       rowNums(21),
       rowNums(31),
-
-      rowNums(null), // 전자교탁 라벨 줄(PC 없음)
-
+      rowNums(null),
       rowNums(41),
       rowNums(51),
-
-      rowNums(null), // 통로
-
+      rowNums(null),
       rowNums(61),
       rowNums(71),
     ],
     []
   );
 
-  // 좌석 번호 리스트(1~80)
   const allSeats = useMemo(() => {
     const out = [];
     for (const row of grid)
@@ -53,13 +57,11 @@ export default function D104() {
     return out;
   }, [grid]);
 
-  // ====== Lab_Computers (데모) ======
   const LOCATION = "D104";
 
-  // ✅ computers는 수정 가능해야 하니까 useState로 들고간다
   const [computers, setComputers] = useState(() =>
     allSeats.map((n) => ({
-      id: n, // 데모: id = 자리번호로 씀
+      id: n,
       location: LOCATION,
       computer_number: n,
       is_broken: false,
@@ -70,7 +72,6 @@ export default function D104() {
     }))
   );
 
-  // 좌석 수가 바뀌면(거의 없음) 누락된 PC만 보강
   useEffect(() => {
     setComputers((prev) => {
       const exist = new Set(prev.map((c) => c.id));
@@ -90,7 +91,6 @@ export default function D104() {
     });
   }, [allSeats]);
 
-  // 선택된 컴퓨터(= Lab_Computers.id)
   const [selectedComputerId, setSelectedComputerId] = useState(allSeats[0] ?? 1);
 
   const selectedComputer = useMemo(
@@ -104,16 +104,12 @@ export default function D104() {
     );
   };
 
-  // ====== Repair_Logs (데모) ======
-  const [repairLogs, setRepairLogs] = useState([
+  const [repairLogs, setRepairLogs] = useState([]);
 
-  ]);
-
-  // PC별 '진행중(대기/수리중)' 로그가 하나라도 있으면 true
   const hasOpenLogMap = useMemo(() => {
     const map = {};
     for (const r of repairLogs) {
-      map[r.computer_id] = true; // 요청 하나라도 있으면 빨강 대상
+      map[r.computer_id] = true;
     }
     return map;
   }, [repairLogs]);
@@ -123,7 +119,6 @@ export default function D104() {
 
   const hasOpenLogs = (computerId) => !!hasOpenLogMap[computerId];
 
-  // ====== 컴퓨터 정보 편집(일괄 저장) ======
   const [isEditingComputer, setIsEditingComputer] = useState(false);
   const [computerDraft, setComputerDraft] = useState({
     manufacturer: "",
@@ -133,7 +128,6 @@ export default function D104() {
     is_broken: false,
   });
 
-  // 선택 PC가 바뀌거나 편집을 종료하면 draft를 현재 값으로 동기화
   useEffect(() => {
     if (!selectedComputer) return;
     if (isEditingComputer) return;
@@ -184,7 +178,6 @@ export default function D104() {
     setIsEditingComputer(false);
   };
 
-  // ====== 우측 폼 ======
   const [category, setCategory] = useState("선택");
   const [requestText, setRequestText] = useState("");
 
@@ -195,7 +188,6 @@ export default function D104() {
 
   const onSubmit = (e) => {
     e.preventDefault();
-
     if (category === "선택") {
       alert("카테고리 선택부터 하셈");
       return;
@@ -204,7 +196,6 @@ export default function D104() {
       alert("요청 내용 비우면 안 됨");
       return;
     }
-
     setRepairLogs((prev) => [
       {
         id: Date.now(),
@@ -216,54 +207,91 @@ export default function D104() {
       },
       ...prev,
     ]);
-
     setCategory("선택");
     setRequestText("");
   };
 
-  // ====== 스타일 (라이트 테마: 처음 버전 느낌) ======
+  // ====== 🎨 따뜻한 뉴트럴 테마 스타일 ======
+  const C = {
+    bg:           "#f5f0eb",
+    card:         "#fdfaf7",
+    border:       "#e2d9cf",
+    borderMed:    "#cdc3b8",
+    text:         "#2d2822",
+    subtext:      "#7a6e64",
+    accent:       "#5c5248",
+    accentHover:  "#3d342c",
+    pcNormal:     "#c8e6c4",
+    pcNormalText: "#2a5c30",
+    pcBroken:     "#f0c4c4",
+    pcBrokenText: "#7c2424",
+    pcSelected:   "#3d342c",
+    podium:       "#e8e2db",
+    podiumText:   "#5c5248",
+    tagGreen:     "#d4ebe0",
+    tagGreenText: "#1e5c3a",
+    tagAmber:     "#f0e8d8",
+    tagAmberText: "#7a4f1e",
+    tagSlate:     "#e3ddd8",
+    tagSlateText: "#4a3f35",
+  };
+
   const styles = {
     page: {
       minHeight: "100vh",
-      background: "#f6f7fb",
+      background: C.bg,
       padding: 22,
       boxSizing: "border-box",
       fontFamily:
-        "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple SD Gothic Neo, Noto Sans KR, sans-serif",
-      color: "#111827",
+        "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
+      color: C.text,
     },
 
     topBar: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "14px 16px",
-      borderRadius: 14,
-      background: "#ffffff",
-      border: "1px solid #e5e7eb",
-      boxShadow: "0 10px 30px rgba(0,0,0,.06)",
+      padding: "14px 18px",
+      borderRadius: 16,
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      boxShadow: "0 4px 20px rgba(92,82,72,.07)",
       marginBottom: 16,
     },
 
     brand: { display: "flex", alignItems: "center", gap: 12 },
 
-    logo: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
-      display: "grid",
-      placeItems: "center",
-      background: "#111827",
-      color: "#fff",
-      fontWeight: 900,
-      flex: "0 0 auto",
+    navRow: { display: "flex", gap: 8, marginBottom: 6 },
+
+    navPill: {
+      textDecoration: "none",
+      padding: "5px 12px",
+      borderRadius: 999,
+      border: `1px solid ${C.border}`,
+      background: C.card,
+      color: C.subtext,
+      fontWeight: 700,
+      fontSize: 12,
+      letterSpacing: "0.3px",
+    },
+
+    navPillActive: {
+      textDecoration: "none",
+      padding: "5px 12px",
+      borderRadius: 999,
+      border: `1px solid ${C.accent}`,
+      background: C.accent,
+      color: "#fdfaf7",
+      fontWeight: 700,
+      fontSize: 12,
+      letterSpacing: "0.3px",
     },
 
     title: {
       margin: 0,
       fontSize: 16,
-      fontWeight: 900,
-      color: "#111827",
+      fontWeight: 700,
+      color: C.text,
       letterSpacing: "-0.2px",
     },
 
@@ -271,42 +299,19 @@ export default function D104() {
       margin: 0,
       marginTop: 2,
       fontSize: 12,
-      color: "#6b7280",
-    },
-
-    navRow: { display: "flex", gap: 8, marginBottom: 6 },
-
-    navPill: {
-      textDecoration: "none",
-      padding: "6px 10px",
-      borderRadius: 999,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      color: "#111827",
-      fontWeight: 900,
-      fontSize: 12,
-    },
-
-    navPillActive: {
-      textDecoration: "none",
-      padding: "6px 10px",
-      borderRadius: 999,
-      border: "1px solid #111827",
-      background: "#111827",
-      color: "#fff",
-      fontWeight: 900,
-      fontSize: 12,
+      color: C.subtext,
     },
 
     linkBtn: {
       textDecoration: "none",
-      padding: "8px 12px",
+      padding: "8px 14px",
       borderRadius: 12,
-      border: "1px solid #111827",
-      background: "#111827",
-      color: "#fff",
-      fontWeight: 900,
+      border: `1px solid ${C.accent}`,
+      background: C.accent,
+      color: "#fdfaf7",
+      fontWeight: 700,
       fontSize: 12,
+      letterSpacing: "0.3px",
     },
 
     layout: {
@@ -317,30 +322,37 @@ export default function D104() {
     },
 
     card: {
-      background: "#fff",
-      border: "1px solid #e5e7eb",
-      borderRadius: 16,
-      boxShadow: "0 10px 30px rgba(0,0,0,.06)",
-      color: "#111827",
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 18,
+      boxShadow: "0 4px 20px rgba(92,82,72,.07)",
+      color: C.text,
     },
 
-    leftWrap: { padding: 16 },
+    leftWrap: { padding: 18 },
 
     leftHeader: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: 12,
+      marginBottom: 14,
     },
 
-    leftHeaderTitle: { fontWeight: 900, color: "#111827" },
+    leftHeaderTitle: {
+      fontWeight: 700,
+      color: C.text,
+      fontSize: 14,
+    },
 
-    leftHeaderHint: { fontSize: 12, opacity: 0.7, color: "#6b7280" },
+    leftHeaderHint: {
+      fontSize: 12,
+      color: C.subtext,
+    },
 
     roomFrame: {
-      background: "#fff",
-      border: "1px solid #e5e7eb",
-      borderRadius: 16,
+      background: C.bg,
+      border: `1px solid ${C.border}`,
+      borderRadius: 14,
       padding: 16,
     },
 
@@ -354,43 +366,58 @@ export default function D104() {
     cellEmpty: {
       height: 54,
       borderRadius: 14,
-      border: "1px dashed #e5e7eb",
+      border: `1px dashed ${C.border}`,
       background: "transparent",
+      boxSizing: "border-box",
     },
 
     cellPodium: {
       height: 54,
       borderRadius: 14,
-      border: "1px solid #cbd5e1",
-      background: "#e2e8f0",
+      border: `1px solid ${C.borderMed}`,
+      background: C.podium,
       display: "grid",
       placeItems: "center",
-      fontWeight: 900,
-      color: "#334155",
+      fontWeight: 700,
+      fontSize: 12,
+      color: C.podiumText,
       userSelect: "none",
+      boxSizing: "border-box",
+      letterSpacing: "0.3px",
     },
 
     cellPc: (active, hasReq) => ({
       height: 54,
       borderRadius: 14,
-      border: active ? "2px solid #111827" : "1px solid #e5e7eb",
-      background: active ? "#111827" : hasReq ? "#fca5a5" : "#bbf7d0",
-      color: active ? "#fff" : "#111827",
+      border: active
+        ? `2px solid ${C.accentHover}`
+        : hasReq
+        ? `1px solid #d49a9a`
+        : `1px solid #8fbb8c`,
+      background: active
+        ? C.pcSelected
+        : hasReq
+        ? C.pcBroken
+        : C.pcNormal,
+      color: active ? "#fdfaf7" : hasReq ? C.pcBrokenText : C.pcNormalText,
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
-      fontWeight: 900,
+      fontWeight: 700,
+      fontSize: 12,
       userSelect: "none",
+      boxSizing: "border-box",
+      transition: "background 0.15s, border-color 0.15s",
     }),
 
-    formWrap: { padding: 16 },
+    formWrap: { padding: 18 },
 
     infoCard: {
       borderRadius: 14,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      padding: 12,
-      marginBottom: 12,
+      border: `1px solid ${C.border}`,
+      background: C.card,
+      padding: 14,
+      marginBottom: 14,
     },
 
     infoHead: {
@@ -398,114 +425,136 @@ export default function D104() {
       justifyContent: "space-between",
       alignItems: "baseline",
       gap: 10,
-      marginBottom: 10,
+      marginBottom: 12,
     },
 
-    infoTitle: { fontSize: 13, fontWeight: 900, margin: 0, color: "#111827" },
+    infoTitle: {
+      fontSize: 13,
+      fontWeight: 700,
+      margin: 0,
+      color: C.text,
+    },
 
-    infoMeta: { fontSize: 11, color: "#6b7280" },
+    infoMeta: { fontSize: 11, color: C.subtext },
 
     formTitleRow: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: 12,
+      marginBottom: 14,
       gap: 10,
     },
 
-    formTitle: { fontSize: 14, fontWeight: 900, margin: 0, color: "#111827" },
+    formTitle: {
+      fontSize: 14,
+      fontWeight: 700,
+      margin: 0,
+      color: C.text,
+    },
 
     pcPill: {
-      padding: "6px 10px",
+      padding: "5px 11px",
       borderRadius: 999,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      color: "#111827",
-      fontSize: 12,
-      fontWeight: 900,
+      border: `1px solid ${C.border}`,
+      background: C.bg,
+      color: C.subtext,
+      fontSize: 11,
+      fontWeight: 700,
     },
 
     field: { display: "grid", gap: 6, marginBottom: 12 },
 
-    label: { fontSize: 12, fontWeight: 900, opacity: 0.9, color: "#374151" },
+    label: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.subtext,
+      letterSpacing: "0.2px",
+    },
 
     input: {
       width: "100%",
       height: 40,
       padding: "0 12px",
-      borderRadius: 12,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      color: "#111827",
+      borderRadius: 10,
+      border: `1px solid ${C.border}`,
+      background: C.bg,
+      color: C.text,
       outline: "none",
       boxSizing: "border-box",
+      fontSize: 13,
     },
 
     select: {
       width: "100%",
       height: 40,
       padding: "0 12px",
-      borderRadius: 12,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      color: "#111827",
+      borderRadius: 10,
+      border: `1px solid ${C.border}`,
+      background: C.bg,
+      color: C.text,
       outline: "none",
       boxSizing: "border-box",
+      fontSize: 13,
     },
 
     textarea: {
       width: "100%",
       minHeight: 140,
       padding: 12,
-      borderRadius: 12,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      color: "#111827",
+      borderRadius: 10,
+      border: `1px solid ${C.border}`,
+      background: C.bg,
+      color: C.text,
       outline: "none",
       resize: "vertical",
       boxSizing: "border-box",
+      fontSize: 13,
+      lineHeight: 1.6,
     },
 
     row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
 
-    hint: { fontSize: 11, opacity: 0.7, marginTop: 2, color: "#6b7280" },
+    hint: { fontSize: 11, color: C.subtext, marginTop: 2 },
 
     submit: {
       width: "100%",
       height: 44,
       borderRadius: 12,
-      border: "1px solid #111827",
-      background: "#111827",
-      color: "#fff",
-      fontWeight: 900,
+      border: `1px solid ${C.accent}`,
+      background: C.accent,
+      color: "#fdfaf7",
+      fontWeight: 700,
       cursor: "pointer",
+      fontSize: 14,
+      letterSpacing: "0.3px",
+      transition: "background 0.15s",
     },
 
     listWrap: { marginTop: 14 },
 
     bigBox: {
       height: 280,
-      borderRadius: 16,
-      background: "#fff",
-      border: "1px solid #e5e7eb",
+      borderRadius: 14,
+      background: C.bg,
+      border: `1px solid ${C.border}`,
       padding: 14,
       boxSizing: "border-box",
       overflow: "auto",
-      color: "#111827",
+      color: C.text,
     },
 
     listTitle: {
       fontSize: 13,
-      fontWeight: 900,
+      fontWeight: 700,
       margin: "0 0 10px 0",
-      color: "#111827",
+      color: C.text,
     },
 
     item: {
       padding: 12,
-      borderRadius: 14,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
+      borderRadius: 12,
+      border: `1px solid ${C.border}`,
+      background: C.card,
       marginBottom: 10,
     },
 
@@ -520,79 +569,78 @@ export default function D104() {
 
     badge: (tone) => {
       const map = {
-        gray: { bg: "#f3f4f6", fg: "#374151" },
-        red: { bg: "#fee2e2", fg: "#991b1b" },
-        green: { bg: "#dcfce7", fg: "#166534" },
-        blue: { bg: "#dbeafe", fg: "#1e40af" },
+        gray:  { bg: C.tagSlate,  fg: C.tagSlateText },
+        red:   { bg: C.pcBroken,  fg: "#7c2424" },
+        green: { bg: C.tagGreen,  fg: C.tagGreenText },
+        blue:  { bg: C.tagAmber,  fg: C.tagAmberText },
       };
       const t = map[tone] ?? map.gray;
       return {
-        padding: "4px 8px",
+        padding: "4px 9px",
         borderRadius: 999,
         fontSize: 11,
-        fontWeight: 900,
+        fontWeight: 700,
         background: t.bg,
         color: t.fg,
+        letterSpacing: "0.2px",
       };
     },
 
-    itemTitle: { fontWeight: 900, margin: "8px 0 6px 0", color: "#111827" },
+    itemTitle: {
+      fontWeight: 700,
+      margin: "8px 0 6px 0",
+      color: C.text,
+      fontSize: 13,
+    },
 
     itemBody: {
       margin: 0,
       fontSize: 13,
-      opacity: 0.9,
-      lineHeight: 1.45,
-      color: "#374151",
+      lineHeight: 1.5,
+      color: C.subtext,
     },
 
     smallBtn: {
-      padding: "4px 8px",
+      padding: "4px 10px",
       borderRadius: 999,
-      border: "1px solid #e5e7eb",
-      background: "#fff",
-      color: "#111827",
+      border: `1px solid ${C.border}`,
+      background: C.card,
+      color: C.subtext,
       fontSize: 12,
-      fontWeight: 900,
+      fontWeight: 700,
       cursor: "pointer",
-      opacity: 0.85,
     },
 
-    timeText: { fontSize: 12, opacity: 0.55, color: "#6b7280" },
+    timeText: { fontSize: 11, color: C.subtext },
 
-    note: { fontSize: 11, opacity: 0.6, marginTop: 10, color: "#6b7280" },
+    note: { fontSize: 11, color: C.subtext, marginTop: 10 },
   };
 
-  const statusTone = (s) => (s === "완료" ? "green" : s === "수리중" ? "blue" : "gray");
+  const statusTone = (s) =>
+    s === "완료" ? "green" : s === "수리중" ? "blue" : "gray";
+
   const categoryTone = (c) =>
-    c === "시설" ? "green": c === "비품" ? "green" : "gray";
+    c === "시설" ? "green" : c === "비품" ? "green" : "gray";
 
   return (
     <div style={styles.page}>
+      {/* ── 상단 바 ── */}
       <div style={styles.topBar}>
         <div style={styles.brand}>
           <div>
             <div style={styles.navRow}>
-              <Link to="/d104" style={styles.navPillActive}>
-                D104
-              </Link>
-              <Link to="/d105" style={styles.navPill}>
-                D105
-              </Link>
+              <Link to="/d104" style={styles.navPillActive}>D104</Link>
+              <Link to="/d105" style={styles.navPill}>D105</Link>
             </div>
-
             <p style={styles.title}>실습실 PC 요청</p>
             <p style={styles.sub}>D104 (배치도) · PC 클릭 → 오른쪽에서 요청 작성</p>
           </div>
         </div>
-
-        <Link to="/" style={styles.linkBtn}>
-          홈으로
-        </Link>
+        <Link to="/" style={styles.linkBtn}>홈으로</Link>
       </div>
 
       <div style={styles.layout}>
-        {/* 좌측: 배치도 */}
+        {/* ── 좌측: 배치도 ── */}
         <div style={styles.card}>
           <div style={styles.leftWrap}>
             <div style={styles.leftHeader}>
@@ -606,7 +654,6 @@ export default function D104() {
                   row.map((cell, cIdx) => {
                     const key = `${rIdx}-${cIdx}`;
 
-                    // 전자교탁 라벨 줄: 첫 칸에만 표시, 나머지는 빈칸
                     if (rIdx === PODIUM_ROW_INDEX) {
                       if (cIdx === 0) {
                         return (
@@ -618,10 +665,8 @@ export default function D104() {
                       return <div key={key} style={styles.cellEmpty} />;
                     }
 
-                    // 통로/빈칸
                     if (cell == null) return <div key={key} style={styles.cellEmpty} />;
 
-                    // PC 칸
                     const active = cell === selectedComputerId;
                     return (
                       <div
@@ -642,22 +687,40 @@ export default function D104() {
                 )}
               </div>
             </div>
-            {/* ✅ 컴퓨터 정보 (Lab_Computers) */}
+
+            {/* ── 컴퓨터 정보 ── */}
             <div style={{ marginTop: 14 }}>
               <div style={styles.infoCard}>
                 <div style={styles.infoHead}>
                   <p style={styles.infoTitle}>컴퓨터 정보</p>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     {!isEditingComputer ? (
-                      <button type="button" onClick={startEditComputer} style={styles.smallBtn}>
+                      <button
+                        type="button"
+                        onClick={startEditComputer}
+                        style={styles.smallBtn}
+                      >
                         수정
                       </button>
                     ) : (
                       <>
-                        <button type="button" onClick={saveComputerDraft} style={styles.smallBtn}>
+                        <button
+                          type="button"
+                          onClick={saveComputerDraft}
+                          style={{
+                            ...styles.smallBtn,
+                            background: C.accent,
+                            color: "#fdfaf7",
+                            border: `1px solid ${C.accent}`,
+                          }}
+                        >
                           저장
                         </button>
-                        <button type="button" onClick={cancelEditComputer} style={styles.smallBtn}>
+                        <button
+                          type="button"
+                          onClick={cancelEditComputer}
+                          style={styles.smallBtn}
+                        >
                           취소
                         </button>
                       </>
@@ -668,12 +731,18 @@ export default function D104() {
                 <div style={styles.row2}>
                   <div style={styles.field}>
                     <div style={styles.label}>위치</div>
-                    <input value={selectedComputer?.location ?? ""} readOnly style={styles.input} />
+                    <input
+                      value={selectedComputer?.location ?? ""}
+                      readOnly
+                      style={styles.input}
+                    />
                   </div>
                   <div style={styles.field}>
                     <div style={styles.label}>컴퓨터 번호</div>
                     <input
-                      value={String(selectedComputer?.computer_number ?? selectedComputerId)}
+                      value={String(
+                        selectedComputer?.computer_number ?? selectedComputerId
+                      )}
                       readOnly
                       style={styles.input}
                     />
@@ -685,7 +754,12 @@ export default function D104() {
                     <div style={styles.label}>제조사(제품명)</div>
                     <input
                       value={computerDraft.manufacturer}
-                      onChange={(e) => setComputerDraft((d) => ({ ...d, manufacturer: e.target.value }))}
+                      onChange={(e) =>
+                        setComputerDraft((d) => ({
+                          ...d,
+                          manufacturer: e.target.value,
+                        }))
+                      }
                       style={styles.input}
                       disabled={!isEditingComputer}
                       placeholder="예) Dell / LG / Samsung"
@@ -695,7 +769,12 @@ export default function D104() {
                     <div style={styles.label}>모델(머신타입)</div>
                     <input
                       value={computerDraft.model}
-                      onChange={(e) => setComputerDraft((d) => ({ ...d, model: e.target.value }))}
+                      onChange={(e) =>
+                        setComputerDraft((d) => ({
+                          ...d,
+                          model: e.target.value,
+                        }))
+                      }
                       style={styles.input}
                       disabled={!isEditingComputer}
                       placeholder="예) OptiPlex 7090"
@@ -708,7 +787,12 @@ export default function D104() {
                     <div style={styles.label}>시리얼 넘버</div>
                     <input
                       value={computerDraft.serial_number}
-                      onChange={(e) => setComputerDraft((d) => ({ ...d, serial_number: e.target.value }))}
+                      onChange={(e) =>
+                        setComputerDraft((d) => ({
+                          ...d,
+                          serial_number: e.target.value,
+                        }))
+                      }
                       style={styles.input}
                       disabled={!isEditingComputer}
                       placeholder="예) SN1234..."
@@ -719,16 +803,23 @@ export default function D104() {
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
                         type="button"
-                        onClick={() => isEditingComputer && setComputerDraft((d) => ({ ...d, is_broken: false }))}
+                        onClick={() =>
+                          isEditingComputer &&
+                          setComputerDraft((d) => ({ ...d, is_broken: false }))
+                        }
                         style={{
                           flex: 1,
                           height: 40,
-                          borderRadius: 12,
-                          border: computerDraft.is_broken ? "1px solid #e5e7eb" : "1px solid #111827",
-                          background: computerDraft.is_broken ? "#fff" : "#111827",
-                          color: computerDraft.is_broken ? "#111827" : "#fff",
-                          fontWeight: 900,
+                          borderRadius: 10,
+                          border: computerDraft.is_broken
+                            ? `1px solid ${C.border}`
+                            : `1px solid ${C.accent}`,
+                          background: computerDraft.is_broken ? C.bg : C.accent,
+                          color: computerDraft.is_broken ? C.subtext : "#fdfaf7",
+                          fontWeight: 700,
                           cursor: "pointer",
+                          fontSize: 13,
+                          transition: "background 0.15s",
                         }}
                         aria-pressed={!computerDraft.is_broken}
                         disabled={!isEditingComputer}
@@ -737,16 +828,25 @@ export default function D104() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => isEditingComputer && setComputerDraft((d) => ({ ...d, is_broken: true }))}
+                        onClick={() =>
+                          isEditingComputer &&
+                          setComputerDraft((d) => ({ ...d, is_broken: true }))
+                        }
                         style={{
                           flex: 1,
                           height: 40,
-                          borderRadius: 12,
-                          border: computerDraft.is_broken ? "1px solid #111827" : "1px solid #e5e7eb",
-                          background: computerDraft.is_broken ? "#111827" : "#fff",
-                          color: computerDraft.is_broken ? "#fff" : "#111827",
-                          fontWeight: 900,
+                          borderRadius: 10,
+                          border: computerDraft.is_broken
+                            ? `1px solid ${C.pcBrokenText}`
+                            : `1px solid ${C.border}`,
+                          background: computerDraft.is_broken
+                            ? C.pcBrokenText
+                            : C.bg,
+                          color: computerDraft.is_broken ? "#fdfaf7" : C.subtext,
+                          fontWeight: 700,
                           cursor: "pointer",
+                          fontSize: 13,
+                          transition: "background 0.15s",
                         }}
                         aria-pressed={!!computerDraft.is_broken}
                         disabled={!isEditingComputer}
@@ -761,7 +861,9 @@ export default function D104() {
                   <div style={styles.label}>비고</div>
                   <textarea
                     value={computerDraft.notes}
-                    onChange={(e) => setComputerDraft((d) => ({ ...d, notes: e.target.value }))}
+                    onChange={(e) =>
+                      setComputerDraft((d) => ({ ...d, notes: e.target.value }))
+                    }
                     style={styles.textarea}
                     disabled={!isEditingComputer}
                     placeholder="예) SSD 교체(2025-11) / 윈도우 재설치 필요 등"
@@ -772,23 +874,26 @@ export default function D104() {
           </div>
         </div>
 
-        {/* 우측: 작성 패널 */}
+        {/* ── 우측: 작성 패널 ── */}
         <div style={styles.card}>
           <div style={styles.formWrap}>
             <div style={styles.formTitleRow}>
               <p style={styles.formTitle}>요청 작성</p>
               <div style={styles.pcPill}>
-                선택 PC: {selectedComputer?.computer_number ?? selectedComputerId} · 상태:{" "}
-                {selectedComputer?.is_broken ? "고장" : "정상"}
+                선택 PC: {selectedComputer?.computer_number ?? selectedComputerId}{" "}
+                · 상태: {selectedComputer?.is_broken ? "고장" : "정상"}
               </div>
             </div>
-
 
             <form onSubmit={onSubmit}>
               <div style={styles.row2}>
                 <div style={styles.field}>
                   <div style={styles.label}>카테고리</div>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} style={styles.select}>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    style={styles.select}
+                  >
                     <option value="선택">선택</option>
                     <option value="시설">시설</option>
                     <option value="비품">비품</option>
@@ -816,26 +921,34 @@ export default function D104() {
               <div style={styles.listWrap}>
                 <div style={styles.bigBox}>
                   <div style={styles.listTitle}>
-                    요청 목록 (PC {selectedComputer?.computer_number ?? selectedComputerId}) ({filtered.length})
+                    요청 목록 (PC{" "}
+                    {selectedComputer?.computer_number ?? selectedComputerId}) (
+                    {filtered.length})
                   </div>
 
                   {filtered.length === 0 ? (
-                    <div style={{ fontSize: 13, padding: 10, color: "#6b7280" }}>
-              
+                    <div style={{ fontSize: 13, padding: 10, color: C.subtext }}>
                     </div>
                   ) : (
                     filtered.map((r) => (
                       <div key={r.id} style={styles.item}>
                         <div style={styles.itemTop}>
                           <div style={styles.badgeRow}>
-                            <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
+                            <span style={styles.badge(categoryTone(r.category))}>
+                              {r.category}
+                            </span>
                           </div>
-
                           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <span style={styles.timeText}>{new Date(r.createdAt).toLocaleString()}</span>
+                            <span style={styles.timeText}>
+                              {new Date(r.createdAt).toLocaleString()}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => setRepairLogs((prev) => prev.filter((x) => x.id !== r.id))}
+                              onClick={() =>
+                                setRepairLogs((prev) =>
+                                  prev.filter((x) => x.id !== r.id)
+                                )
+                              }
                               style={styles.smallBtn}
                               title="이 요청 삭제"
                             >
@@ -843,9 +956,10 @@ export default function D104() {
                             </button>
                           </div>
                         </div>
-
                         <div style={styles.itemTitle}>{r.title}</div>
-                        {r.description ? <p style={styles.itemBody}>{r.description}</p> : null}
+                        {r.description ? (
+                          <p style={styles.itemBody}>{r.description}</p>
+                        ) : null}
                       </div>
                     ))
                   )}
