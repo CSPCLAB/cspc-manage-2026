@@ -74,7 +74,6 @@ export default function D105() {
       manufacturer: "",
       model: "",
       serial_number: "",
-      notes: "",
     }))
   );
 
@@ -91,7 +90,6 @@ export default function D105() {
           manufacturer: "",
           model: "",
           serial_number: "",
-          notes: "",
         }));
       return add.length ? [...prev, ...add].sort((a, b) => a.id - b.id) : prev;
     });
@@ -130,7 +128,6 @@ export default function D105() {
     manufacturer: "",
     model: "",
     serial_number: "",
-    notes: "",
     is_broken: false,
   });
 
@@ -141,7 +138,6 @@ export default function D105() {
       manufacturer: selectedComputer.manufacturer ?? "",
       model: selectedComputer.model ?? "",
       serial_number: selectedComputer.serial_number ?? "",
-      notes: selectedComputer.notes ?? "",
       is_broken: !!selectedComputer.is_broken,
     });
   }, [selectedComputerId, selectedComputer, isEditingComputer]);
@@ -152,7 +148,6 @@ export default function D105() {
       manufacturer: selectedComputer.manufacturer ?? "",
       model: selectedComputer.model ?? "",
       serial_number: selectedComputer.serial_number ?? "",
-      notes: selectedComputer.notes ?? "",
       is_broken: !!selectedComputer.is_broken,
     });
     setIsEditingComputer(true);
@@ -167,7 +162,6 @@ export default function D105() {
       manufacturer: selectedComputer.manufacturer ?? "",
       model: selectedComputer.model ?? "",
       serial_number: selectedComputer.serial_number ?? "",
-      notes: selectedComputer.notes ?? "",
       is_broken: !!selectedComputer.is_broken,
     });
     setIsEditingComputer(false);
@@ -178,7 +172,6 @@ export default function D105() {
       manufacturer: computerDraft.manufacturer,
       model: computerDraft.model,
       serial_number: computerDraft.serial_number,
-      notes: computerDraft.notes,
       is_broken: !!computerDraft.is_broken,
     });
     setIsEditingComputer(false);
@@ -193,7 +186,7 @@ export default function D105() {
   );
 
   const onSubmit = (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
     if (category === "선택") {
       alert("카테고리 선택부터 하셈");
       return;
@@ -213,6 +206,12 @@ export default function D105() {
       },
       ...prev,
     ]);
+    // 요청이 등록되면 자동으로 '고장' 상태로 전환(= 고장 버튼 누른 효과)
+    updateSelectedComputer({ is_broken: true });
+    // 편집 모드 중이면 draft도 같이 맞춰준다 (sync useEffect가 막혀있기 때문)
+    if (isEditingComputer) {
+      setComputerDraft((d) => ({ ...d, is_broken: true }));
+    }
     setCategory("선택");
     setRequestText("");
   };
@@ -224,7 +223,7 @@ export default function D105() {
     border:       "#e2d9cf",
     borderMed:    "#cdc3b8",
     text:         "#2d2822",
-    subtext:      "#7a6e64",
+    subtext:      "#7a6e64",   
     accent:       "#5c5248",   // 버튼 베이스 (슬레이트 브라운)
     accentHover:  "#3d342c",
     pcNormal:     "#c8e6c4",   // 정상 PC 배경 — 따뜻한 세이지 그린
@@ -671,8 +670,6 @@ export default function D105() {
     note: { fontSize: 11, color: C.subtext, marginTop: 10 },
   };
 
-  const statusTone = (s) =>
-    s === "완료" ? "green" : s === "수리중" ? "blue" : "gray";
 
   const categoryTone = (c) =>
     c === "시설" ? "green" : c === "비품" ? "green" : "gray";
@@ -728,7 +725,7 @@ export default function D105() {
                           key={key}
                           style={styles.cellPc(
                             cell === selectedComputerId,
-                            hasOpenLogs(cell) || isBroken(cell)
+                            isBroken(cell)
                           )}
                           onClick={() => setSelectedComputerId(cell)}
                         >
@@ -784,7 +781,7 @@ export default function D105() {
                             style={{
                               ...styles.cellPcSide(
                                 active,
-                                hasOpenLogs(num) || isBroken(num)
+                                isBroken(num)
                               ),
                               top,
                               height,
@@ -973,36 +970,83 @@ export default function D105() {
                   </div>
                 </div>
 
-                <div style={styles.field}>
-                  <div style={styles.label}>비고</div>
-                  <textarea
-                    value={computerDraft.notes}
-                    onChange={(e) =>
-                      setComputerDraft((d) => ({ ...d, notes: e.target.value }))
-                    }
-                    style={styles.textarea}
-                    disabled={!isEditingComputer}
-                    placeholder="예) SSD 교체(2025-11) / 윈도우 재설치 필요 등"
-                  />
+                {/* ── 요청 목록 (비고 자리로 이동) ── */}
+                <div style={{ marginTop: 6 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, margin: 0, color: C.text }}>
+                      요청 목록
+                    </div>
+                    <div style={{ fontSize: 11, color: C.subtext }}>
+                      선택 PC: {selectedComputer?.computer_number ?? selectedComputerId}
+                    </div>
+                  </div>
+
+                  <div style={styles.bigBox}>
+                    <div style={styles.listTitle}>
+                      요청 목록 (PC {selectedComputer?.computer_number ?? selectedComputerId}) ({filtered.length})
+                    </div>
+
+                    {filtered.length === 0 ? (
+                      <div style={{ fontSize: 13, padding: 10, color: C.subtext }}>
+                        아직 요청 없음
+                      </div>
+                    ) : (
+                      filtered.map((r) => (
+                        <div key={r.id} style={styles.item}>
+                          <div style={styles.itemTop}>
+                            <div style={styles.badgeRow}>
+                              <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <span style={styles.timeText}>{new Date(r.createdAt).toLocaleString()}</span>
+                              <button
+                                type="button"
+                                onClick={() => setRepairLogs((prev) => prev.filter((x) => x.id !== r.id))}
+                                style={styles.smallBtn}
+                                title="이 요청 삭제"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                          <div style={styles.itemTitle}>{r.title}</div>
+                          {r.description ? <p style={styles.itemBody}>{r.description}</p> : null}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── 우측: 작성 패널 ── */}
+        {/* ── 우측: 전체 요청 모아보기 ── */}
         <div style={styles.card}>
           <div style={styles.formWrap}>
             <div style={styles.formTitleRow}>
-              <p style={styles.formTitle}>요청 작성</p>
-              <div style={styles.pcPill}>
-                선택 PC: {selectedComputer?.computer_number ?? selectedComputerId}{" "}
-                · 상태: {selectedComputer?.is_broken ? "고장" : "정상"}
-              </div>
+              <p style={styles.formTitle}>전체 요청</p>
+    
             </div>
 
-            <form onSubmit={onSubmit}>
-              <div style={styles.row2}>
+            {/* ── 요청 작성 (전체 요청 위) ── */}
+            <div style={styles.infoCard}>
+              <div style={styles.infoHead}>
+                <p style={styles.infoTitle}>요청 작성</p>
+                <div style={styles.infoMeta}>
+                  선택 PC: {selectedComputer?.computer_number ?? selectedComputerId} · 상태: {selectedComputer?.is_broken ? "고장" : "정상"}
+                </div>
+              </div>
+
+              <form onSubmit={onSubmit}>
                 <div style={styles.field}>
                   <div style={styles.label}>카테고리</div>
                   <select
@@ -1015,76 +1059,65 @@ export default function D105() {
                     <option value="비품">비품</option>
                     <option value="기타">기타</option>
                   </select>
-                  <div style={styles.hint}></div>
                 </div>
-              </div>
 
-              <div style={styles.field}>
-                <div style={styles.label}>요청 내용</div>
-                <input
-                  value={requestText}
-                  onChange={(e) => setRequestText(e.target.value)}
-                  style={styles.input}
-                  placeholder={`예) PC ${selectedComputer?.computer_number ?? selectedComputerId} 모니터 깜빡임`}
-                />
-                <div style={styles.hint}></div>
-              </div>
+                <div style={styles.field}>
+                  <div style={styles.label}>요청 내용</div>
+                  <input
+                    value={requestText}
+                    onChange={(e) => setRequestText(e.target.value)}
+                    style={styles.input}
+                    placeholder={`예) PC ${selectedComputer?.computer_number ?? selectedComputerId} 모니터 깜빡임`}
+                  />
+                </div>
 
-              <button type="submit" style={styles.submit}>
-                제출
-              </button>
+                <button type="submit" style={styles.submit}>
+                  제출
+                </button>
+              </form>
+            </div>
 
-              <div style={styles.listWrap}>
-                <div style={styles.bigBox}>
-                  <div style={styles.listTitle}>
-                    요청 목록 (PC{" "}
-                    {selectedComputer?.computer_number ?? selectedComputerId}) (
-                    {filtered.length})
-                  </div>
+            <div style={styles.listTitle}>전체 요청 목록 ({repairLogs.length})</div>
+              <div style={styles.bigBox}> 
 
-                  {filtered.length === 0 ? (
-                    <div style={{ fontSize: 13, padding: 10, color: C.subtext }}>
-                    </div>
-                  ) : (
-                    filtered.map((r) => (
-                      <div key={r.id} style={styles.item}>
-                        <div style={styles.itemTop}>
-                          <div style={styles.badgeRow}>
-                            <span style={styles.badge(categoryTone(r.category))}>
-                              {r.category}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <span style={styles.timeText}>
-                              {new Date(r.createdAt).toLocaleString()}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setRepairLogs((prev) =>
-                                  prev.filter((x) => x.id !== r.id)
-                                )
-                              }
-                              style={styles.smallBtn}
-                              title="이 요청 삭제"
-                            >
-                              삭제
-                            </button>
-                          </div>
+              {repairLogs.length === 0 ? (
+                <div style={{ fontSize: 13, padding: 10, color: C.subtext }}>아직 요청 없음</div>
+              ) : (
+                repairLogs
+                  .slice()
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map((r) => (
+                    <div key={r.id} style={styles.item}>
+                      <div style={styles.itemTop}>
+                        <div style={styles.badgeRow}>
+                          <span style={styles.badge("gray")}>PC {r.computer_id}</span>
+                          <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
                         </div>
-                        <div style={styles.itemTitle}>{r.title}</div>
-                        {r.description ? (
-                          <p style={styles.itemBody}>{r.description}</p>
-                        ) : null}
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <span style={styles.timeText}>{new Date(r.createdAt).toLocaleString()}</span>
+                          <button
+                            type="button"
+                            onClick={() => setRepairLogs((prev) => prev.filter((x) => x.id !== r.id))}
+                            style={styles.smallBtn}
+                            title="이 요청 삭제"
+                          >
+                            삭제
+                          </button>
+                        </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </form>
+                      <div style={styles.itemTitle}>{r.title}</div>
+                      {r.description ? <p style={styles.itemBody}>{r.description}</p> : null}
+                    </div>
+                  ))
+              )}
+            </div>
+
+            <div style={styles.note}>
+              * 좌측에서 PC 선택 후 요청을 작성하면, 전체 요청에 전부 모입니다.
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+} 
