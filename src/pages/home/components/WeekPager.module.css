@@ -1,0 +1,33 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  height: 30px;
+  width: 34px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #f1f5f9;
+}
+
+.label {
+  font-weight: 800;
+  font-size: 13px;
+  min-width: 54px;
+  text-align: center;
+}
+
+.select {
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0 8px;
+}

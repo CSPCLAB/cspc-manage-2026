@@ -1,0 +1,99 @@
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tabBtn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.tabBtn:hover {
+  background: #f1f5f9;
+}
+
+.active {
+  opacity: 1;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.bodyWrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.scrollArea {
+  overflow: auto;
+  min-height: 0;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.editor {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.editorRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 0 10px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #cbd5e1;
+}
+
+.addBtn {
+  width: 72px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.addBtn:hover {
+  background: #f1f5f9;
+}
+
+.help {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.65;
+}

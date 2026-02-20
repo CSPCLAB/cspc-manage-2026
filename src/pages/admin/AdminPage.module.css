@@ -1,0 +1,36 @@
+.page {
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  text-decoration: none;
+  color: #111827;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.link:hover {
+  background: #f1f5f9;
+}

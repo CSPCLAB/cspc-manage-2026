@@ -1,0 +1,37 @@
+.panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* grid/flex 내부 스크롤 필수 */
+  overflow: hidden;
+}
+
+.header {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.body {
+  padding: 12px 14px;
+  overflow: auto;  /* 섹션 내부 스크롤 */
+  min-height: 0;   /* 이것도 중요 */
+  flex: 1;  
+}
