@@ -16,6 +16,12 @@ export default function HomePage() {
       <TopBar
         right={
           <div className={styles.topRightButtons}>
+            <button
+              className={styles.notionBtn}
+              onClick={() => navigate("./d104")}
+            >
+              실습실 관리
+            </button>
             <a
               className={styles.notionBtn}
               href={NOTION_URL}
@@ -24,13 +30,6 @@ export default function HomePage() {
             >
               노션 바로가기
             </a>
-
-            <button
-              className={styles.notionBtn}
-              onClick={() => navigate("./d104")}
-            >
-              D104
-            </button>
           </div>
         }
       />
