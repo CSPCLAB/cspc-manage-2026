@@ -1,0 +1,85 @@
+.bodyNoScroll {
+  overflow: hidden;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 6px 10px;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  transition: transform 0.15s ease;
+}
+
+.item:hover {
+  transform: translateY(-1px);
+}
+
+/* 1등 강조 */
+.top1 {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* 🔵 동그라미 숫자 */
+.rankCircle {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 13px;
+}
+
+/* 1등 동그라미 강조 */
+.top1 .rankCircle {
+  background: #f59e0b;
+  color: white;
+  animation: pulse 2.5s infinite;
+}
+
+.name {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.crown {
+  font-size: 14px;
+}
+
+.late {
+  font-weight: 900;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}

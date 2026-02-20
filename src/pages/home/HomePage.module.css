@@ -1,0 +1,72 @@
+.page {
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+}
+
+.left {
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  grid-template-rows: 220px 1fr;
+}
+
+.leftTop {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.leftBottom {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.right {
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  grid-template-rows: 1.3fr 1.3fr 220px;
+  font-size: 13px;
+}
+
+.notionBtn {
+  display: inline-flex; 
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  text-decoration: none;
+  color: #111827;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.notionBtn:hover {
+  background: #f1f5f9;
+}
+
+/* 작은 화면 대응: 한 열로 쌓기 */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .right {
+    grid-template-rows: auto;
+  }
+}
