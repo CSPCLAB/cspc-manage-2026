@@ -1,7 +1,7 @@
 import Panel from "../../../components/layout/Panel";
 import styles from "./NoticePanel.module.css";
 
-const DUMMY = Array.from({ length: 18 }, (_, i) => ({
+const DUMMY = Array.from({ length: 3 }, (_, i) => ({
   id: i + 1,
   title: `공지사항 ${i + 1}`,
   category: i % 2 === 0 ? "랩실 사용수칙" : "관리 수칙",
