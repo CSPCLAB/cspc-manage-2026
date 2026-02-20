@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
  * 실습실 PC 배치도 (전자교탁 왼쪽) + 클릭하면 우측 패널에 PC 정보/요청 표시
  * - 번호는 "위에서부터 1,2,3..." 순으로 자동 부여
  * - DB 스키마 느낌:
- *   - Lab_Computers: manufacturer/model/serial_number/notes/is_broken 등
+ *   - Lab_Computers: manufacturer/model/serial_number/is_broken 등
  *   - Repair_Logs: 컴퓨터별 요청 로그
  *
  * 🎨 테마: 따뜻한 뉴트럴 (베이지/슬레이트)
@@ -201,7 +201,6 @@ export default function D105() {
         computer_id: selectedComputerId,
         category,
         title: requestText.trim(),
-        description: "",
         createdAt: new Date().toISOString(),
       },
       ...prev,
@@ -550,20 +549,6 @@ export default function D105() {
       fontSize: 13,
     },
 
-    textarea: {
-      width: "100%",
-      minHeight: 140,
-      padding: 12,
-      borderRadius: 10,
-      border: `1px solid ${C.border}`,
-      background: C.bg,
-      color: C.text,
-      outline: "none",
-      resize: "vertical",
-      boxSizing: "border-box",
-      fontSize: 13,
-      lineHeight: 1.6,
-    },
 
     row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
 
@@ -1018,7 +1003,6 @@ export default function D105() {
                             </div>
                           </div>
                           <div style={styles.itemTitle}>{r.title}</div>
-                          {r.description ? <p style={styles.itemBody}>{r.description}</p> : null}
                         </div>
                       ))
                     )}
@@ -1106,7 +1090,6 @@ export default function D105() {
                         </div>
                       </div>
                       <div style={styles.itemTitle}>{r.title}</div>
-                      {r.description ? <p style={styles.itemBody}>{r.description}</p> : null}
                     </div>
                   ))
               )}
