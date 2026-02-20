@@ -55,7 +55,7 @@
 
 .periodTime {
   font-size: 10px;
-  font-weight: 500px;
+  font-weight: 500;
   opacity: 0.7;
   text-align: center;
 }
@@ -69,26 +69,21 @@
 
   display: flex;
   align-items: center;
-  justify-content: center;  /* ✅ 완전 중앙 */
+  justify-content: center; /* ✅ 완전 중앙 */
 
   min-width: 0;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative; /* ✅ 자동완성/오류 메시지 absolute 기준 */
 }
 
-.cell:hover {
-  transform: translateY(-2px);
-}
-
-/* ✅ 월요일만 이름이 잘리는 문제 방지:
-   - adminRow에서 공간을 균등하게 사용
-   - 이름은 줄바꿈 안 하고, 필요하면 축약(…)
-*/
+/* ✅ adminRow 중앙 정렬 + 텍스트 줄임 */
 .adminRow {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   min-width: 0;
+  width: 100%;
 }
 
 .colorDot {
@@ -123,15 +118,14 @@
 
 /* ✅ 오늘 요일 헤더 강조 */
 .todayHeader {
-  border-width: 2px; /* 기존 1px → 2px */
+  border-width: 2px;
   border-style: solid;
-  border-color: rgba(0, 0, 0, 0.3); /* 파란색 강조 */
+  border-color: rgba(0, 0, 0, 0.3);
   font-weight: 900;
 }
 
 /* ✅ 오늘 요일 컬럼(셀)도 아주 살짝 톤만 다르게 */
 .todayCol {
-  /* 너무 과하면 빼도 됨 */
   box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
 }
 
@@ -181,17 +175,172 @@
 }
 
 .editable {
-  cursor: pointer;
+  cursor: text; /* ✅ 이제 클릭이 아니라 입력이 중심 */
 }
 
+/* (기존 picked는 swap용이었는데, 혹시 남겨둘 수도 있으니 유지) */
 .picked {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
   transform: translateY(-1px);
 }
 
-/* 이미 쓰고 있던 대타 점선 테두리 유지 */
-.substitute {
-  border-style: dashed;
-  border-width: 2px;
-  border-color: rgba(15, 23, 42, 0.25);
+/* -------------------------------
+   ✅ 새로 추가: 인라인 입력/오류/자동완성/저장·취소
+-------------------------------- */
+
+/* input wrapper */
+.inputWrap {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+/* 인라인 입력 (기존 글자 스타일과 어울리게) */
+.nameInput {
+  width: 100%;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.10);
+  padding: 0 8px;
+  background: rgba(255,255,255,0.92);
+  outline: none;
+
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.4px;
+
+  min-width: 0;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.nameInput::placeholder {
+  color: rgba(0,0,0,0.28);
+  font-weight: 700;
+}
+
+.nameInput:focus {
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* ✅ 매칭 실패 셀 강조 */
+.errorCell {
+  border-color: rgba(220, 38, 38, 0.55);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.10);
+}
+
+/* 오류 메시지(셀 아래로 살짝) */
+.errorMsg {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 40px;
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(180, 0, 0, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* ✅ 자동완성 박스 (셀 위에 떠야 해서 z-index) */
+.suggestBox {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 40px;
+  z-index: 50;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.98);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.14);
+  overflow: hidden;
+}
+
+/* 자동완성 안내 */
+.suggestTop {
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.03);
+  font-size: 10px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.55);
+}
+
+/* 자동완성 아이템 */
+.suggestItem {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 8px;
+  cursor: pointer;
+  font-weight: 850;
+  font-size: 13px;
+  transition: background 0.08s ease;
+}
+
+.suggestItem:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.suggestActive {
+  background: rgba(0,0,0,0.10);
+}
+
+/* 하단 힌트 */
+.suggestBottom {
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.03);
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.50);
+}
+
+/* ✅ 저장/취소 버튼 세트 (Panel right 영역) */
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cancelBtn,
+.saveBtn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.cancelBtn:hover {
+  background: #f1f5f9;
+}
+
+.saveBtn {
+  border-color: rgba(15, 23, 42, 0.18);
+  background: rgba(15, 23, 42, 0.92);
+  color: white;
+}
+
+.saveBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.saveBtn:not(:disabled):hover {
+  filter: brightness(1.03);
+}
+
+/* 힌트 내 상태 텍스트 */
+.hintError {
+  color: rgba(180, 0, 0, 0.85);
+  font-weight: 900;
+}
+
+.hintDirty {
+  color: rgba(15, 23, 42, 0.78);
+  font-weight: 900;
 }

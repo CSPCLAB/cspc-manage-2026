@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import styles from "./HomePage.module.css";
 import TopBar from "../../components/layout/TopBar";
 import WeekSchedulePanel from "./components/WeekSchedulePanel";
@@ -8,14 +9,29 @@ import LateRankPanel from "./components/LateRankPanel"; // ✅ 추가
 
 export default function HomePage() {
   const NOTION_URL = import.meta.env.VITE_NOTION_URL || "https://www.notion.so/";
+  const navigate = useNavigate();
 
   return (
     <div className={styles.page}>
       <TopBar
         right={
-          <a className={styles.notionBtn} href={NOTION_URL} target="_blank" rel="noreferrer">
-            노션 바로가기
-          </a>
+          <div className={styles.topRightButtons}>
+            <a
+              className={styles.notionBtn}
+              href={NOTION_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              노션 바로가기
+            </a>
+
+            <button
+              className={styles.notionBtn}
+              onClick={() => navigate("./d104")}
+            >
+              D104
+            </button>
+          </div>
         }
       />
 

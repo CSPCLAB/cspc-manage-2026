@@ -60,6 +60,12 @@
   background: #f1f5f9;
 }
 
+.topRightButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* 작은 화면 대응: 한 열로 쌓기 */
 @media (max-width: 1100px) {
   .grid {
