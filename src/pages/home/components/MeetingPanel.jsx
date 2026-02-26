@@ -2,6 +2,7 @@ import { useState } from "react";
 import Panel from "../../../components/layout/Panel";
 import styles from "./MeetingPanel.module.css";
 
+<<<<<<< HEAD
 export default function MeetingPanel() {
   const [tab, setTab] = useState("agenda");
 
@@ -15,10 +16,19 @@ export default function MeetingPanel() {
     { id: 2, content: "회의 시간 조정 제안" },
   ]);
 
+=======
+const DUMMY = Array.from({ length: 14 }, (_, i) => ({
+  id: i + 1,
+  content: `회의 안건 예시 ${i + 1}`,
+}));
+
+export default function MeetingPanel() {
+>>>>>>> origin/main
   const [text, setText] = useState("");
 
   const onAdd = () => {
     if (!text.trim()) return;
+<<<<<<< HEAD
 
     const newItem = { id: Date.now(), content: text };
 
@@ -81,6 +91,20 @@ export default function MeetingPanel() {
                 >
                   ✕
                 </button>
+=======
+    alert(`(더미) 안건 등록: ${text}`);
+    setText("");
+  };
+
+  return (
+    <Panel title="회의 안건">
+      <div className={styles.bodyWrap}>
+        <div className={styles.scrollArea}>
+          <ul className={styles.list}>
+            {DUMMY.map((a) => (
+              <li key={a.id} className={styles.item}>
+                {a.content}
+>>>>>>> origin/main
               </li>
             ))}
           </ul>
@@ -90,11 +114,15 @@ export default function MeetingPanel() {
           <div className={styles.editorRow}>
             <input
               className={styles.input}
+<<<<<<< HEAD
               placeholder={
                 tab === "agenda"
                   ? "회의 안건을 한 줄로 추가"
                   : "건의 내용을 한 줄로 추가"
               }
+=======
+              placeholder="안건을 한 줄로 추가"
+>>>>>>> origin/main
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onAdd()}
@@ -107,4 +135,8 @@ export default function MeetingPanel() {
       </div>
     </Panel>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/main

@@ -20,6 +20,7 @@
   min-height: 0;
   display: grid;
   gap: 16px;
+<<<<<<< HEAD
   grid-template-rows: 240px 1fr;
 }
 
@@ -28,6 +29,14 @@
   grid-template-columns: minmax(420px, 1fr) 360px;
   gap: 12px;
   align-items: stretch;
+=======
+  grid-template-rows: 220px 1fr;
+}
+
+.leftTop {
+  min-height: 0;
+  overflow: hidden;
+>>>>>>> origin/main
 }
 
 .leftBottom {
@@ -47,7 +56,10 @@
   display: inline-flex; 
   align-items: center;
   justify-content: center;
+<<<<<<< HEAD
   line-height: 1;
+=======
+>>>>>>> origin/main
   height: 36px;
   padding: 0 12px;
   border-radius: 10px;
@@ -63,12 +75,15 @@
   background: #f1f5f9;
 }
 
+<<<<<<< HEAD
 .topRightButtons {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+=======
+>>>>>>> origin/main
 /* 작은 화면 대응: 한 열로 쌓기 */
 @media (max-width: 1100px) {
   .grid {

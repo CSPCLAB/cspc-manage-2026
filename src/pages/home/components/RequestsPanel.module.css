@@ -1,6 +1,35 @@
+<<<<<<< HEAD
 /* =========================
    Layout
 ========================= */
+=======
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tabBtn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.tabBtn:hover {
+  background: #f1f5f9;
+}
+
+.active {
+  opacity: 1;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+>>>>>>> origin/main
 
 .bodyWrap {
   height: 100%;
@@ -11,22 +40,32 @@
 }
 
 .scrollArea {
+<<<<<<< HEAD
   flex: 1;
+=======
+>>>>>>> origin/main
   overflow: auto;
   min-height: 0;
 }
 
+<<<<<<< HEAD
 /* =========================
    List
 ========================= */
 
+=======
+>>>>>>> origin/main
 .list {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
+<<<<<<< HEAD
   gap: 8px;
+=======
+  gap: 10px;
+>>>>>>> origin/main
 }
 
 .item {
@@ -35,6 +74,7 @@
   padding: 10px 12px;
   background: #ffffff;
   font-weight: 600;
+<<<<<<< HEAD
   font-size: 14px;
   transition: background 0.15s ease, transform 0.05s ease;
 }
@@ -51,6 +91,13 @@
   border-top: 1px solid #f1f5f9;
   padding-top: 12px;
   flex-shrink: 0;
+=======
+}
+
+.editor {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+>>>>>>> origin/main
 }
 
 .editorRow {
@@ -63,14 +110,22 @@
   height: 36px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
+<<<<<<< HEAD
   padding: 0 12px;
   outline: none;
   font-size: 14px;
+=======
+  padding: 0 10px;
+  outline: none;
+>>>>>>> origin/main
 }
 
 .input:focus {
   border-color: #cbd5e1;
+<<<<<<< HEAD
   background: #ffffff;
+=======
+>>>>>>> origin/main
 }
 
 .addBtn {
@@ -80,15 +135,20 @@
   border: 1px solid #e5e7eb;
   background: #ffffff;
   cursor: pointer;
+<<<<<<< HEAD
   font-weight: 700;
   font-size: 13px;
   transition: background 0.15s ease, transform 0.05s ease;
+=======
+  font-weight: 800;
+>>>>>>> origin/main
 }
 
 .addBtn:hover {
   background: #f1f5f9;
 }
 
+<<<<<<< HEAD
 .addBtn:active {
   transform: scale(0.96);
 }
@@ -121,3 +181,10 @@
 .deleteBtn:hover {
   opacity: 1;
 }
+=======
+.help {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.65;
+}
+>>>>>>> origin/main
