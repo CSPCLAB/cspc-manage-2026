@@ -7,6 +7,7 @@
 }
 
 .scrollArea {
+  flex: 1;
   overflow: auto;
   min-height: 0;
 }
@@ -17,7 +18,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .item {
@@ -31,6 +32,7 @@
 .editor {
   border-top: 1px solid #f1f5f9;
   padding-top: 12px;
+  flex-shrink: 0;
 }
 
 .editorRow {
@@ -58,9 +60,54 @@
   border: 1px solid #e5e7eb;
   background: #ffffff;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .addBtn:hover {
   background: #f1f5f9;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tabBtn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.tabBtn:hover {
+  background: #f1f5f9;
+}
+
+.active {
+  opacity: 1;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deleteBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.deleteBtn:hover {
+  opacity: 1;
 }

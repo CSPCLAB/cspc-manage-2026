@@ -1,9 +1,9 @@
 import Panel from "../../../components/layout/Panel";
 import styles from "./NoticePanel.module.css";
 
-const DUMMY = Array.from({ length: 3 }, (_, i) => ({
+const DUMMY = Array.from({ length: 1 }, (_, i) => ({
   id: i + 1,
-  title: `공지사항 ${i + 1}`,
+  title: `CSPC 랩실 사용수칙`,
   category: i % 2 === 0 ? "랩실 사용수칙" : "관리 수칙",
 }));
 

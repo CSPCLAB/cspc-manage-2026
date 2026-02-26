@@ -5,6 +5,7 @@ import WeekSchedulePanel from "./components/WeekSchedulePanel";
 import NoticePanel from "./components/NoticePanel";
 import MeetingPanel from "./components/MeetingPanel";
 import RequestsPanel from "./components/RequestsPanel";
+import AdminAuthPanel from "./components/AdminAuthPanel"; // ✅ 추가
 import LateRankPanel from "./components/LateRankPanel"; // ✅ 추가
 
 export default function HomePage() {
@@ -18,18 +19,22 @@ export default function HomePage() {
           <div className={styles.topRightButtons}>
             <button
               className={styles.notionBtn}
+              onClick={() => navigate("./admin")}
+            >
+              관리자 페이지
+            </button>
+            <button
+              className={styles.notionBtn}
               onClick={() => navigate("./d104")}
             >
               실습실 관리
             </button>
-            <a
+            <button
               className={styles.notionBtn}
-              href={NOTION_URL}
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => window.open(NOTION_URL, "_blank", "noopener,noreferrer")}
             >
               노션 바로가기
-            </a>
+            </button>
           </div>
         }
       />
@@ -38,6 +43,7 @@ export default function HomePage() {
         <div className={styles.left}>
           <div className={styles.leftTop}>
             <NoticePanel />
+            <AdminAuthPanel />
           </div>
           <div className={styles.leftBottom}>
             <WeekSchedulePanel />

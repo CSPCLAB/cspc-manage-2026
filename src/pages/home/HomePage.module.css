@@ -20,12 +20,14 @@
   min-height: 0;
   display: grid;
   gap: 16px;
-  grid-template-rows: 220px 1fr;
+  grid-template-rows: 240px 1fr;
 }
 
 .leftTop {
-  min-height: 0;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) 360px;
+  gap: 12px;
+  align-items: stretch;
 }
 
 .leftBottom {
@@ -45,6 +47,7 @@
   display: inline-flex; 
   align-items: center;
   justify-content: center;
+  line-height: 1;
   height: 36px;
   padding: 0 12px;
   border-radius: 10px;

@@ -1,22 +1,27 @@
 .panelFull {
-  height: 100%;
+  height: auto; /* ✅ 100% 제거: 잘림 방지 */
 }
 
-/* ✅ 요일 칸 너비를 항상 동일하게:
-   - 첫 컬럼(교시/시간) 고정
-   - 나머지 5컬럼 동일 분배 */
+/* ✅ 스크롤은 끄되, 내용이 잘리지 않게 */
+.noScrollBody {
+  overflow: visible;
+}
+
+/* ✅ 7일(월~일), 가로 넘침 방지: 컨테이너 폭 안에서 압축 */
 .grid {
   display: grid;
-  grid-template-columns: 120px repeat(5, minmax(0, 1fr));
+  grid-template-columns: 120px repeat(7, minmax(0, 1fr));
   gap: 8px;
   align-items: start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .corner {
   height: 30px;
 }
 
-/* 요일 헤더: 칸 너비 동일 + 텍스트 잘림 방지 */
+/* 요일 헤더: 폭 안에서 줄임 */
 .dayHeader {
   height: 38px;
   display: flex;
@@ -26,15 +31,19 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #ffffff;
+
+  min-width: 0;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 한 행(교시 1줄): 1열(교시헤더) + 5열(요일 칸) */
+/* 한 행 */
 .row {
-  display: contents; /* grid 칸을 그대로 사용하기 위해 */
+  display: contents;
 }
 
-/* 왼쪽 교시 헤더: 라벨 + 작은 시간 */
+/* 교시 헤더 */
 .periodHeader {
   height: 50px;
   border: 1px solid #e5e7eb;
@@ -45,12 +54,17 @@
   flex-direction: column;
   justify-content: center;
   gap: 6px;
+
+  min-width: 0;
 }
 
 .periodLabel {
   font-size: 13px;
   font-weight: 900;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .periodTime {
@@ -58,9 +72,12 @@
   font-weight: 500;
   opacity: 0.7;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 각 요일 칸 */
+/* 셀 */
 .cell {
   height: 50px;
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -69,14 +86,14 @@
 
   display: flex;
   align-items: center;
-  justify-content: center; /* ✅ 완전 중앙 */
+  justify-content: center;
 
   min-width: 0;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-  position: relative; /* ✅ 자동완성/오류 메시지 absolute 기준 */
+  position: relative;
 }
 
-/* ✅ adminRow 중앙 정렬 + 텍스트 줄임 */
+/* adminRow 중앙정렬 */
 .adminRow {
   display: flex;
   align-items: center;
@@ -112,11 +129,7 @@
   white-space: nowrap;
 }
 
-.noScrollBody {
-  overflow: hidden; /* ✅ 시간표는 스크롤 없이 */
-}
-
-/* ✅ 오늘 요일 헤더 강조 */
+/* 오늘 헤더 강조 */
 .todayHeader {
   border-width: 2px;
   border-style: solid;
@@ -124,12 +137,11 @@
   font-weight: 900;
 }
 
-/* ✅ 오늘 요일 컬럼(셀)도 아주 살짝 톤만 다르게 */
 .todayCol {
   box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
 }
 
-/* ✅ 현재 시간 칸 glow */
+/* 현재 교시 glow */
 .nowGlow {
   box-shadow:
     0 0 0 2px rgba(59, 130, 246, 0.45),
@@ -168,18 +180,13 @@
 }
 
 .editable {
-  cursor: text; /* ✅ 이제 클릭이 아니라 입력이 중심 */
+  cursor: text;
 }
 
-/* (기존 picked는 swap용이었는데, 혹시 남겨둘 수도 있으니 유지) */
 .picked {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
   transform: translateY(-1px);
 }
-
-/* -------------------------------
-   ✅ 새로 추가: 인라인 입력/오류/자동완성/저장·취소
--------------------------------- */
 
 /* input wrapper */
 .inputWrap {
@@ -188,7 +195,6 @@
   width: 100%;
 }
 
-/* 인라인 입력 (기존 글자 스타일과 어울리게) */
 .nameInput {
   width: 100%;
   height: 30px;
@@ -216,13 +222,11 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
-/* ✅ 매칭 실패 셀 강조 */
 .errorCell {
   border-color: rgba(220, 38, 38, 0.55);
   box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.10);
 }
 
-/* 오류 메시지(셀 아래로 살짝) */
 .errorMsg {
   position: absolute;
   left: 8px;
@@ -237,7 +241,7 @@
   pointer-events: none;
 }
 
-/* ✅ 자동완성 박스 (셀 위에 떠야 해서 z-index) */
+/* 자동완성 */
 .suggestBox {
   position: absolute;
   left: 6px;
@@ -251,7 +255,6 @@
   overflow: hidden;
 }
 
-/* 자동완성 안내 */
 .suggestTop {
   padding: 6px 8px;
   background: rgba(0,0,0,0.03);
@@ -260,7 +263,6 @@
   color: rgba(0,0,0,0.55);
 }
 
-/* 자동완성 아이템 */
 .suggestItem {
   width: 100%;
   border: 0;
@@ -281,7 +283,6 @@
   background: rgba(0,0,0,0.10);
 }
 
-/* 하단 힌트 */
 .suggestBottom {
   padding: 6px 8px;
   background: rgba(0,0,0,0.03);
@@ -290,7 +291,6 @@
   color: rgba(0,0,0,0.50);
 }
 
-/* ✅ 저장/취소 버튼 세트 (Panel right 영역) */
 .editActions {
   display: flex;
   align-items: center;
@@ -327,7 +327,6 @@
   filter: brightness(1.03);
 }
 
-/* 힌트 내 상태 텍스트 */
 .hintError {
   color: rgba(180, 0, 0, 0.85);
   font-weight: 900;

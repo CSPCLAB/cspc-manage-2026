@@ -3,18 +3,18 @@ import Panel from "../../../components/layout/Panel";
 import WeekPager from "./WeekPager";
 import styles from "./WeekSchedulePanel.module.css";
 
-const DAYS = ["월", "화", "수", "목", "금"];
+const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const PERIODS = [
   { key: 1, label: "1교시", start: "09:00", end: "10:15" },
   { key: 2, label: "2교시", start: "10:30", end: "11:45" },
-  { key: 3, label: "3교시", start: "12:00", end: "12:00" },
+  { key: 3, label: "3교시", start: "12:00", end: "13:15" },
   { key: 4, label: "4교시", start: "13:30", end: "14:45" },
   { key: 5, label: "5교시", start: "15:00", end: "16:15" },
   { key: 6, label: "6교시", start: "16:30", end: "17:45" },
-  { key: 7, label: "저녁", start: "18:00", end: "" },
+  { key: 7, label: "저녁", start: "18:00", end: "" }, // end 없으면 기본 2시간 처리
 ];
 
-// ✅ (임시) 관리자 후보 풀: DB 붙이면 여기 대신 members/admins를 props나 fetch로 받으면 됨
+// ✅ (임시) 관리자 후보 풀
 const ADMIN_POOL = [
   { id: "a1", name: "다솔", color: "#60a5fa", aliases: ["윤다솔", "dasol"] },
   { id: "a2", name: "준일", color: "#34d399", aliases: ["joonil"] },
@@ -32,17 +32,33 @@ function hexToRgba(hex, alpha = 0.12) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function makeDummyWeek(weekNumber) {
-  const admins = ADMIN_POOL;
+function parseHHMMToDate(baseDate, hhmm) {
+  if (!hhmm) return null;
+  const [hh, mm] = hhmm.split(":").map((x) => parseInt(x, 10));
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hh, mm, 0);
+}
 
+function getPeriodWindow(baseDate, period) {
+  const s = parseHHMMToDate(baseDate, period.start);
+  let e = parseHHMMToDate(baseDate, period.end);
+  if (!s) return null;
+
+  if (!e) e = new Date(s.getTime() + 120 * 60 * 1000); // end 없으면 2시간
+  if (e <= s) e = new Date(s.getTime() + 75 * 60 * 1000); // 이상치 보호
+
+  return { startAt: s, endAt: e };
+}
+
+function makeDummyWeek(weekNumber) {
   const items = [];
   for (let d = 0; d < DAYS.length; d++) {
     for (let p = 0; p < PERIODS.length; p++) {
-      const pick = admins[(d + p + weekNumber) % admins.length];
+      const pick = ADMIN_POOL[(d + p + weekNumber) % ADMIN_POOL.length];
       items.push({
         dayIndex: d,
         periodKey: PERIODS[p].key,
-        admin: pick, // {id,name,color}
+        admin: pick,
         isSub: (d + p + weekNumber) % 7 === 0,
       });
     }
@@ -61,25 +77,23 @@ function normalizeName(s) {
 export default function WeekSchedulePanel() {
   const [week, setWeek] = useState(1);
 
-  // ✅ 편집 모드
   const [isEdit, setIsEdit] = useState(false);
-
-  // ✅ 커밋된(실제) 주차별 시간표
   const [cells, setCells] = useState(() => makeDummyWeek(week));
-
-  // ✅ 편집 초기에 스냅샷 (취소 시 복구용)
   const [originalCells, setOriginalCells] = useState(() => makeDummyWeek(week));
-
-  // ✅ 입력 드래프트: key -> { text, resolvedAdminId, error }
   const [draftInputs, setDraftInputs] = useState({});
 
-  // ✅ 자동완성 상태
-  const [suggestOpenFor, setSuggestOpenFor] = useState(null); // cellKey
+  const [suggestOpenFor, setSuggestOpenFor] = useState(null);
   const [highlightIndex, setHighlightIndex] = useState(0);
 
   const gridRef = useRef(null);
 
-  // 주차 바뀌면 해당 주차 데이터 로드(지금은 더미)
+  // ✅ 실시간 now (오늘/현재교시 glow)
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     const next = makeDummyWeek(week);
     setCells(next);
@@ -90,14 +104,12 @@ export default function WeekSchedulePanel() {
     setHighlightIndex(0);
   }, [week]);
 
-  // ✅ 이름 매칭 맵 + 후보 목록
   const { exactMap, adminById, duplicateKeys, candidates } = useMemo(() => {
     const byId = new Map();
     ADMIN_POOL.forEach((a) => byId.set(a.id, a));
 
-    // normalized key -> adminId (unique only)
     const counts = new Map();
-    const occurrences = []; // {key, adminId}
+    const occurrences = [];
     ADMIN_POOL.forEach((a) => {
       const keys = [a.name, ...(a.aliases ?? [])].map(normalizeName).filter(Boolean);
       keys.forEach((k) => {
@@ -119,21 +131,18 @@ export default function WeekSchedulePanel() {
     return { exactMap: map, adminById: byId, duplicateKeys: dup, candidates: list };
   }, []);
 
-  // 빠른 조회 맵(현재 커밋 cells)
   const map = useMemo(() => {
     const m = new Map();
     cells.forEach((c) => m.set(keyOf(c.dayIndex, c.periodKey), c));
     return m;
   }, [cells]);
 
-  // 오리지널 조회 맵(취소/dirty 비교)
   const originalMap = useMemo(() => {
     const m = new Map();
     originalCells.forEach((c) => m.set(keyOf(c.dayIndex, c.periodKey), c));
     return m;
   }, [originalCells]);
 
-  // 편집 진입 시 draftInputs 초기화
   useEffect(() => {
     if (!isEdit) return;
 
@@ -151,7 +160,6 @@ export default function WeekSchedulePanel() {
     setHighlightIndex(0);
   }, [isEdit, cells]);
 
-  // 문서 바깥 클릭 시 자동완성 닫기
   useEffect(() => {
     const onDown = (e) => {
       const root = gridRef.current;
@@ -170,10 +178,7 @@ export default function WeekSchedulePanel() {
     if (!n) return { resolvedAdminId: null, error: null };
 
     if (duplicateKeys.has(n)) {
-      return {
-        resolvedAdminId: null,
-        error: "동명이인/중복 별칭이 있어요. 더 정확히 입력해줘요.",
-      };
+      return { resolvedAdminId: null, error: "동명이인/중복 별칭이 있어요. 더 정확히 입력해줘요." };
     }
 
     const id = exactMap.get(n);
@@ -261,9 +266,7 @@ export default function WeekSchedulePanel() {
   const suggestions = useMemo(() => {
     if (!isEdit || !suggestOpenFor) return [];
     const q = normalizeName(draftInputs[suggestOpenFor]?.text ?? "");
-    const list = q
-      ? candidates.filter((c) => normalizeName(c.name).includes(q))
-      : candidates.slice();
+    const list = q ? candidates.filter((c) => normalizeName(c.name).includes(q)) : candidates.slice();
     return list.slice(0, 8);
   }, [isEdit, suggestOpenFor, draftInputs, candidates]);
 
@@ -272,7 +275,6 @@ export default function WeekSchedulePanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suggestions.length]);
 
-  // ✅ 저장: draftInputs -> cells로 커밋
   const onSave = async () => {
     if (!isEdit || hasErrors || !isDirty) return;
 
@@ -284,17 +286,11 @@ export default function WeekSchedulePanel() {
       const orig = originalMap.get(k);
       const origId = orig?.admin?.id ?? null;
 
-      // 빈칸
       if (!n) {
         const changed = origId !== null;
-        return {
-          ...c,
-          admin: null,
-          isSub: changed ? true : false, // 정책: 변경 발생하면 대타 표시
-        };
+        return { ...c, admin: null, isSub: changed ? true : false };
       }
 
-      // 매칭 성공
       if (di?.resolvedAdminId) {
         const admin = adminById.get(di.resolvedAdminId);
         const changed = origId !== admin?.id;
@@ -305,12 +301,8 @@ export default function WeekSchedulePanel() {
         };
       }
 
-      // 매칭 실패(원래는 저장 버튼이 막혀서 여기 안 옴)
       return c;
     });
-
-    // TODO: 여기서 백엔드 저장 요청 (week 포함)
-    // await api.put(`/weekly-schedules/${week}`, next)
 
     setCells(next);
     setOriginalCells(next);
@@ -320,7 +312,6 @@ export default function WeekSchedulePanel() {
     setHighlightIndex(0);
   };
 
-  // ✅ 취소: originalCells로 복구
   const onCancel = () => {
     if (!isEdit) return;
     if (isDirty) {
@@ -334,13 +325,26 @@ export default function WeekSchedulePanel() {
     setHighlightIndex(0);
   };
 
+  const todayIndex = useMemo(() => {
+    const js = now.getDay(); // 0=일..6=토
+    return (js + 6) % 7; // 월=0..일=6
+  }, [now]);
+
+  const currentPeriodKey = useMemo(() => {
+    for (const p of PERIODS) {
+      const w = getPeriodWindow(now, p);
+      if (!w) continue;
+      if (now >= w.startAt && now <= w.endAt) return p.key;
+    }
+    return null;
+  }, [now]);
+
   return (
     <Panel
       title="주차별 시간표"
       right={
         <div className={styles.rightControls}>
           <WeekPager week={week} onChangeWeek={setWeek} />
-
           {isEdit ? (
             <div className={styles.editActions}>
               <button className={styles.cancelBtn} onClick={onCancel}>
@@ -356,11 +360,7 @@ export default function WeekSchedulePanel() {
               </button>
             </div>
           ) : (
-            <button
-              className={`${styles.editBtn} ${isEdit ? styles.editOn : ""}`}
-              onClick={() => setIsEdit(true)}
-              title="시간표 수정"
-            >
+            <button className={`${styles.editBtn} ${isEdit ? styles.editOn : ""}`} onClick={() => setIsEdit(true)} title="시간표 수정">
               ✏️
             </button>
           )}
@@ -369,11 +369,9 @@ export default function WeekSchedulePanel() {
       className={styles.panelFull}
       bodyClassName={styles.noScrollBody}
     >
-      {/* 편집 모드 안내 */}
       {isEdit && (
         <div className={styles.editHint}>
-          이름을 입력하면 자동 배정돼요. 공백이면 빈칸. (Enter: 다음 / Shift+Enter: 이전 / Tab: 후보 적용 /
-          ↑↓: 후보 이동 / Esc: 현재 칸 원복)
+          이름을 입력하면 자동 배정돼요. 공백이면 빈칸. (Enter: 다음 / Shift+Enter: 이전 / Tab: 후보 적용 / ↑↓: 후보 이동 / Esc: 현재 칸 원복)
           {hasErrors && <span className={styles.hintError}> — 오류가 있어 저장할 수 없어요</span>}
           {!hasErrors && isDirty && <span className={styles.hintDirty}> — 변경 {dirtyCount}개</span>}
         </div>
@@ -382,8 +380,8 @@ export default function WeekSchedulePanel() {
       <div className={styles.grid} ref={gridRef}>
         <div className={styles.corner} />
 
-        {DAYS.map((d) => (
-          <div key={d} className={styles.dayHeader}>
+        {DAYS.map((d, idx) => (
+          <div key={d} className={`${styles.dayHeader} ${idx === todayIndex ? styles.todayHeader : ""}`}>
             {d}
           </div>
         ))}
@@ -405,8 +403,10 @@ export default function WeekSchedulePanel() {
               const text = isEdit ? di?.text ?? "" : committed?.admin?.name ?? "";
               const hasError = isEdit ? Boolean(di?.error) : false;
 
-              const showSuggest =
-                isEdit && suggestOpenFor === cellKey && suggestions.length > 0;
+              const showSuggest = isEdit && suggestOpenFor === cellKey && suggestions.length > 0;
+
+              const isTodayCol = dayIndex === todayIndex;
+              const isNowCell = isTodayCol && currentPeriodKey === p.key;
 
               return (
                 <div
@@ -416,11 +416,15 @@ export default function WeekSchedulePanel() {
                     isEdit ? styles.editable : "",
                     committed?.isSub ? styles.substitute : "",
                     hasError ? styles.errorCell : "",
+                    isTodayCol ? styles.todayCol : "",
+                    isNowCell ? styles.nowGlow : "",
                   ].join(" ")}
                   style={{
                     backgroundColor: hexToRgba(
                       isEdit
-                        ? (di?.resolvedAdminId ? adminById.get(di.resolvedAdminId)?.color : committed?.admin?.color)
+                        ? di?.resolvedAdminId
+                          ? adminById.get(di.resolvedAdminId)?.color
+                          : committed?.admin?.color
                         : committed?.admin?.color,
                       0.12
                     ),
@@ -436,6 +440,7 @@ export default function WeekSchedulePanel() {
                             : committed?.admin?.color ?? "rgba(0,0,0,0.18)",
                       }}
                     />
+
                     {isEdit ? (
                       <div className={styles.inputWrap}>
                         <input
@@ -507,20 +512,15 @@ export default function WeekSchedulePanel() {
 
                         {showSuggest && (
                           <div className={styles.suggestBox}>
-                            <div className={styles.suggestTop}>
-                              ↑↓ 이동 · Tab/Enter 적용 · Esc 원복
-                            </div>
+                            <div className={styles.suggestTop}>↑↓ 이동 · Tab/Enter 적용 · Esc 원복</div>
 
                             {suggestions.map((s, idx) => (
                               <button
                                 type="button"
                                 key={s.id}
-                                className={[
-                                  styles.suggestItem,
-                                  idx === highlightIndex ? styles.suggestActive : "",
-                                ].join(" ")}
+                                className={[styles.suggestItem, idx === highlightIndex ? styles.suggestActive : ""].join(" ")}
                                 onMouseDown={(ev) => {
-                                  ev.preventDefault(); // input blur 방지
+                                  ev.preventDefault();
                                   applySuggestion(cellKey, s.id);
                                 }}
                               >
@@ -528,9 +528,7 @@ export default function WeekSchedulePanel() {
                               </button>
                             ))}
 
-                            <div className={styles.suggestBottom}>
-                              * 정확히 매칭되면 자동 배정, 아니면 후보에서 선택해줘요.
-                            </div>
+                            <div className={styles.suggestBottom}>* 정확히 매칭되면 자동 배정, 아니면 후보에서 선택해줘요.</div>
                           </div>
                         )}
                       </div>

@@ -1,29 +1,6 @@
-.tabs {
-  display: flex;
-  gap: 6px;
-}
-
-.tabBtn {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.tabBtn:hover {
-  background: #f1f5f9;
-}
-
-.active {
-  opacity: 1;
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-}
+/* =========================
+   Layout
+========================= */
 
 .bodyWrap {
   height: 100%;
@@ -34,9 +11,14 @@
 }
 
 .scrollArea {
+  flex: 1;
   overflow: auto;
   min-height: 0;
 }
+
+/* =========================
+   List
+========================= */
 
 .list {
   margin: 0;
@@ -44,7 +26,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .item {
@@ -53,11 +35,22 @@
   padding: 10px 12px;
   background: #ffffff;
   font-weight: 600;
+  font-size: 14px;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
+
+.item:hover {
+  background: #f8fafc;
+}
+
+/* =========================
+   Editor
+========================= */
 
 .editor {
   border-top: 1px solid #f1f5f9;
   padding-top: 12px;
+  flex-shrink: 0;
 }
 
 .editorRow {
@@ -70,12 +63,14 @@
   height: 36px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
-  padding: 0 10px;
+  padding: 0 12px;
   outline: none;
+  font-size: 14px;
 }
 
 .input:focus {
   border-color: #cbd5e1;
+  background: #ffffff;
 }
 
 .addBtn {
@@ -85,15 +80,44 @@
   border: 1px solid #e5e7eb;
   background: #ffffff;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 13px;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 
 .addBtn:hover {
   background: #f1f5f9;
 }
 
-.help {
-  margin-top: 8px;
-  font-size: 12px;
-  opacity: 0.65;
+.addBtn:active {
+  transform: scale(0.96);
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.completed span {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.deleteBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.deleteBtn:hover {
+  opacity: 1;
 }

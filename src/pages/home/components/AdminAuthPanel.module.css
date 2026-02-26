@@ -1,0 +1,199 @@
+/* 패널 자체 */
+.panel {
+  height: fit-content;
+  min-width: 340px; /* 필요하면 360~380까지 늘려도 됨 */
+}
+
+/* 전체 래퍼 */
+.wrap {
+  display: grid;
+  gap: 8px; /* 기존 10 -> 8 (세로 압축) */
+}
+
+/* -------------------------------
+   상단: 현재시간 + 현재교시 (한 줄)
+-------------------------------- */
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.timeNow {
+  font-size: 12px;
+  font-weight: 900;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.sep {
+  opacity: 0.45;
+  font-weight: 900;
+}
+
+.periodOn {
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.periodOff {
+  font-size: 12px;
+  font-weight: 900;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+/* 오른쪽 작은 시간 뱃지 */
+.badgeSmall {
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
+  white-space: nowrap;
+}
+
+/* -------------------------------
+   현재 담당자 박스
+-------------------------------- */
+
+.assignee {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px; /* 기존 10 -> 8 (압축) */
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.assigneeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assigneeLabel {
+  font-size: 11px;
+  opacity: 0.65;
+  font-weight: 800;
+}
+
+.assigneeName {
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------
+   시작 / 끝 버튼
+-------------------------------- */
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  height: 38px; /* 기존 36 -> 38 */
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* 활성 */
+.btnOn {
+  background: rgba(0, 0, 0, 0.88);
+  color: white;
+  cursor: pointer;
+}
+
+/* 비활성 */
+.btnOff {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.55);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+/* 버튼 안 작은 상태 pill */
+.pill {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.pillOn {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pillOff {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.55);
+}
+
+/* -------------------------------
+   시작/끝 가능 시간 표시
+-------------------------------- */
+
+.windows {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.winLine {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.winLabel {
+  width: 44px;
+  opacity: 0.7;
+  font-weight: 900;
+}
+
+.winValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
