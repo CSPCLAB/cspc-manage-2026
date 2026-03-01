@@ -77,3 +77,10 @@
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }
+
+.emptyMsg {
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #64748b;
+}
