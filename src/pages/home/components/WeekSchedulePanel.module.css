@@ -1,11 +1,13 @@
 ﻿.panelFull {
-  height: auto; 
+  height: auto; /* ✅ 100% 제거: 잘림 방지 */
 }
 
+/* ✅ 스크롤은 끄되, 내용이 잘리지 않게 */
 .noScrollBody {
   overflow: visible;
 }
 
+/* ✅ 7일(월~일), 가로 넘침 방지: 컨테이너 폭 안에서 압축 */
 .grid {
   display: grid;
   grid-template-columns: 120px repeat(7, minmax(0, 1fr));
@@ -19,6 +21,7 @@
   height: 30px;
 }
 
+/* 요일 헤더: 폭 안에서 줄임 */
 .dayHeader {
   height: 38px;
   display: flex;
@@ -35,10 +38,12 @@
   text-overflow: ellipsis;
 }
 
+/* 한 행 */
 .row {
   display: contents;
 }
 
+/* 교시 헤더 */
 .periodHeader {
   height: 50px;
   border: 1px solid #e5e7eb;
@@ -53,6 +58,15 @@
   min-width: 0;
 }
 
+.periodLabel {
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .periodTime {
   font-size: 10px;
   font-weight: 500;
@@ -63,6 +77,7 @@
   text-overflow: ellipsis;
 }
 
+/* 셀 */
 .cell {
   height: 50px;
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -78,6 +93,7 @@
   position: relative;
 }
 
+/* adminRow 중앙정렬 */
 .adminRow {
   display: flex;
   align-items: center;
@@ -85,6 +101,47 @@
   gap: 6px;
   min-width: 0;
   width: 100%;
+}
+
+.colorDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.adminName {
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.subBadge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(220, 220, 220);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 오늘 헤더 강조 */
+.todayHeader {
+  border-width: 2px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.3);
+  font-weight: 900;
+}
+
+.todayCol {
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
+}
+
+/* 현재 교시 glow */
 .nowGlow {
   box-shadow:
     0 0 0 2px rgba(59, 130, 246, 0.45),
@@ -184,6 +241,7 @@
   pointer-events: none;
 }
 
+/* 자동완성 */
 .suggestBox {
   position: absolute;
   left: 6px;
