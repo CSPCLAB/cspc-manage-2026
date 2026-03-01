@@ -1,14 +1,11 @@
-.panelFull {
-<<<<<<< HEAD
-  height: auto; /* ✅ 100% 제거: 잘림 방지 */
+﻿.panelFull {
+  height: auto; 
 }
 
-/* ✅ 스크롤은 끄되, 내용이 잘리지 않게 */
 .noScrollBody {
   overflow: visible;
 }
 
-/* ✅ 7일(월~일), 가로 넘침 방지: 컨테이너 폭 안에서 압축 */
 .grid {
   display: grid;
   grid-template-columns: 120px repeat(7, minmax(0, 1fr));
@@ -16,30 +13,12 @@
   align-items: start;
   width: 100%;
   box-sizing: border-box;
-=======
-  height: 100%;
-}
-
-/* ✅ 요일 칸 너비를 항상 동일하게:
-   - 첫 컬럼(교시/시간) 고정
-   - 나머지 5컬럼 동일 분배 */
-.grid {
-  display: grid;
-  grid-template-columns: 120px repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  align-items: start;
->>>>>>> origin/main
 }
 
 .corner {
   height: 30px;
 }
 
-<<<<<<< HEAD
-/* 요일 헤더: 폭 안에서 줄임 */
-=======
-/* 요일 헤더: 칸 너비 동일 + 텍스트 잘림 방지 */
->>>>>>> origin/main
 .dayHeader {
   height: 38px;
   display: flex;
@@ -49,7 +28,6 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #ffffff;
-<<<<<<< HEAD
 
   min-width: 0;
   white-space: nowrap;
@@ -57,23 +35,10 @@
   text-overflow: ellipsis;
 }
 
-/* 한 행 */
 .row {
   display: contents;
 }
 
-/* 교시 헤더 */
-=======
-  white-space: nowrap;
-}
-
-/* 한 행(교시 1줄): 1열(교시헤더) + 5열(요일 칸) */
-.row {
-  display: contents; /* grid 칸을 그대로 사용하기 위해 */
-}
-
-/* 왼쪽 교시 헤더: 라벨 + 작은 시간 */
->>>>>>> origin/main
 .periodHeader {
   height: 50px;
   border: 1px solid #e5e7eb;
@@ -84,28 +49,12 @@
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-<<<<<<< HEAD
 
   min-width: 0;
-=======
->>>>>>> origin/main
-}
-
-.periodLabel {
-  font-size: 13px;
-  font-weight: 900;
-  text-align: center;
-<<<<<<< HEAD
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-=======
->>>>>>> origin/main
 }
 
 .periodTime {
   font-size: 10px;
-<<<<<<< HEAD
   font-weight: 500;
   opacity: 0.7;
   text-align: center;
@@ -114,15 +63,6 @@
   text-overflow: ellipsis;
 }
 
-/* 셀 */
-=======
-  font-weight: 500px;
-  opacity: 0.7;
-  text-align: center;
-}
-
-/* 각 요일 칸 */
->>>>>>> origin/main
 .cell {
   height: 50px;
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -131,7 +71,6 @@
 
   display: flex;
   align-items: center;
-<<<<<<< HEAD
   justify-content: center;
 
   min-width: 0;
@@ -139,96 +78,13 @@
   position: relative;
 }
 
-/* adminRow 중앙정렬 */
-=======
-  justify-content: center;  /* ✅ 완전 중앙 */
-
-  min-width: 0;
-  transition: transform 0.15s ease;
-}
-
-.cell:hover {
-  transform: translateY(-2px);
-}
-
-/* ✅ 월요일만 이름이 잘리는 문제 방지:
-   - adminRow에서 공간을 균등하게 사용
-   - 이름은 줄바꿈 안 하고, 필요하면 축약(…)
-*/
->>>>>>> origin/main
 .adminRow {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   min-width: 0;
-<<<<<<< HEAD
   width: 100%;
-=======
->>>>>>> origin/main
-}
-
-.colorDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  flex: 0 0 auto;
-}
-
-.adminName {
-  font-size: 14px;
-  font-weight: 700;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0.5px;
-}
-
-.subBadge {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(220, 220, 220);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-<<<<<<< HEAD
-/* 오늘 헤더 강조 */
-.todayHeader {
-  border-width: 2px;
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.3);
-  font-weight: 900;
-}
-
-.todayCol {
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
-}
-
-/* 현재 교시 glow */
-=======
-.noScrollBody {
-  overflow: hidden; /* ✅ 시간표는 스크롤 없이 */
-}
-
-/* ✅ 오늘 요일 헤더 강조 */
-.todayHeader {
-  border-width: 2px; /* 기존 1px → 2px */
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.3); /* 파란색 강조 */
-  font-weight: 900;
-}
-
-/* ✅ 오늘 요일 컬럼(셀)도 아주 살짝 톤만 다르게 */
-.todayCol {
-  /* 너무 과하면 빼도 됨 */
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
-}
-
-/* ✅ 현재 시간 칸 glow */
->>>>>>> origin/main
 .nowGlow {
   box-shadow:
     0 0 0 2px rgba(59, 130, 246, 0.45),
@@ -236,16 +92,6 @@
   transform: translateY(-1px);
 }
 
-<<<<<<< HEAD
-=======
-/* ✅ 대타는 점선 테두리 */
-.substitute {
-  border-style: dashed;
-  border-width: 2px;
-  border-color: rgba(15, 23, 42, 0.25);
-}
-
->>>>>>> origin/main
 .rightControls {
   display: flex;
   align-items: center;
@@ -277,11 +123,7 @@
 }
 
 .editable {
-<<<<<<< HEAD
   cursor: text;
-=======
-  cursor: pointer;
->>>>>>> origin/main
 }
 
 .picked {
@@ -289,7 +131,6 @@
   transform: translateY(-1px);
 }
 
-<<<<<<< HEAD
 /* input wrapper */
 .inputWrap {
   position: relative;
@@ -343,7 +184,6 @@
   pointer-events: none;
 }
 
-/* 자동완성 */
 .suggestBox {
   position: absolute;
   left: 6px;
@@ -437,11 +277,4 @@
 .hintDirty {
   color: rgba(15, 23, 42, 0.78);
   font-weight: 900;
-=======
-/* 이미 쓰고 있던 대타 점선 테두리 유지 */
-.substitute {
-  border-style: dashed;
-  border-width: 2px;
-  border-color: rgba(15, 23, 42, 0.25);
->>>>>>> origin/main
 }

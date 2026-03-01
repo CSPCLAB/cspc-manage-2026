@@ -1,4 +1,4 @@
-.bodyWrap {
+﻿.bodyWrap {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -7,10 +7,7 @@
 }
 
 .scrollArea {
-<<<<<<< HEAD
   flex: 1;
-=======
->>>>>>> origin/main
   overflow: auto;
   min-height: 0;
 }
@@ -21,11 +18,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-<<<<<<< HEAD
   gap: 8px;
-=======
-  gap: 10px;
->>>>>>> origin/main
 }
 
 .item {
@@ -39,10 +32,7 @@
 .editor {
   border-top: 1px solid #f1f5f9;
   padding-top: 12px;
-<<<<<<< HEAD
   flex-shrink: 0;
-=======
->>>>>>> origin/main
 }
 
 .editorRow {
@@ -70,17 +60,12 @@
   border: 1px solid #e5e7eb;
   background: #ffffff;
   cursor: pointer;
-<<<<<<< HEAD
   font-weight: 700;
-=======
-  font-weight: 800;
->>>>>>> origin/main
 }
 
 .addBtn:hover {
   background: #f1f5f9;
 }
-<<<<<<< HEAD
 
 .tabs {
   display: flex;
@@ -126,5 +111,5 @@
 .deleteBtn:hover {
   opacity: 1;
 }
-=======
->>>>>>> origin/main
+
+
