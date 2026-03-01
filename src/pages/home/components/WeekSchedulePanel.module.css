@@ -129,14 +129,6 @@
   white-space: nowrap;
 }
 
-/* 오늘 헤더 강조 */
-.todayHeader {
-  border-width: 2px;
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.3);
-  font-weight: 900;
-}
-
 .todayCol {
   box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
 }
@@ -281,14 +273,6 @@
 
 .suggestActive {
   background: rgba(0,0,0,0.10);
-}
-
-.suggestBottom {
-  padding: 6px 8px;
-  background: rgba(0,0,0,0.03);
-  font-size: 10px;
-  font-weight: 800;
-  color: rgba(0,0,0,0.50);
 }
 
 .editActions {

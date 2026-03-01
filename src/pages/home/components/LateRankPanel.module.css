@@ -28,12 +28,6 @@
   transform: translateY(-1px);
 }
 
-/* 1등 강조 */
-.top1 {
-  border-color: #f59e0b;
-  background: rgba(245, 158, 11, 0.12);
-}
-
 /* 🔵 동그라미 숫자 */
 .rankCircle {
   width: 26px;

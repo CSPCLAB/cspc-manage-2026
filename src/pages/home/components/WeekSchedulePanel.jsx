@@ -11,14 +11,6 @@ const PERIODS = [
   { key: 4, label: "4교시", start: "13:30", end: "14:45" },
   { key: 5, label: "5교시", start: "15:00", end: "16:15" },
   { key: 6, label: "6교시", start: "16:30", end: "17:45" },
-  { key: 7, label: "저녁", start: "18:00", end: "" }, // end 없으면 기본 2시간 처리
-];
-
-// ✅ (임시) 관리자 후보 풀
-const ADMIN_POOL = [
-  { id: "a1", name: "다솔", color: "#60a5fa", aliases: ["윤다솔", "dasol"] },
-  { id: "a2", name: "준일", color: "#34d399", aliases: ["joonil"] },
-  { id: "a3", name: "예원", color: "#fbbf24", aliases: ["yewon"] },
 ];
 
 function hexToRgba(hex, alpha = 0.12) {
@@ -50,36 +42,22 @@ function getPeriodWindow(baseDate, period) {
   return { startAt: s, endAt: e };
 }
 
-function makeDummyWeek(weekNumber) {
-  const items = [];
-  for (let d = 0; d < DAYS.length; d++) {
-    for (let p = 0; p < PERIODS.length; p++) {
-      const pick = ADMIN_POOL[(d + p + weekNumber) % ADMIN_POOL.length];
-      items.push({
-        dayIndex: d,
-        periodKey: PERIODS[p].key,
-        admin: pick,
-        isSub: (d + p + weekNumber) % 7 === 0,
-      });
-    }
-  }
-  return items;
-}
-
+// 시간표의 한 칸을 고유하게 식별하는 ID를 만드는 함수
 function keyOf(dayIndex, periodKey) {
   return `${dayIndex}-${periodKey}`;
 }
 
+// 공백이나 대소문자 오타로 인한 에러 방지
 function normalizeName(s) {
   return (s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-export default function WeekSchedulePanel() {
+export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError }) {
   const [week, setWeek] = useState(1);
-
+  
   const [isEdit, setIsEdit] = useState(false);
-  const [cells, setCells] = useState(() => makeDummyWeek(week));
-  const [originalCells, setOriginalCells] = useState(() => makeDummyWeek(week));
+  const [cells, setCells] = useState([]);
+  const [originalCells, setOriginalCells] = useState([]);
   const [draftInputs, setDraftInputs] = useState({});
 
   const [suggestOpenFor, setSuggestOpenFor] = useState(null);
@@ -94,42 +72,56 @@ export default function WeekSchedulePanel() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const next = makeDummyWeek(week);
-    setCells(next);
-    setOriginalCells(next);
-    setIsEdit(false);
-    setDraftInputs({});
-    setSuggestOpenFor(null);
-    setHighlightIndex(0);
-  }, [week]);
+  
+function makeDummyWeek(weekNumber, pool) {
+  const items = [];
+  for (let d = 0; d < DAYS.length; d++) {
+    for (let p = 0; p < PERIODS.length; p++) {
+      const pick = pool?.length
+        ? pool[(d + p + weekNumber) % pool.length]
+        : null;
 
-  const { exactMap, adminById, duplicateKeys, candidates } = useMemo(() => {
-    const byId = new Map();
-    ADMIN_POOL.forEach((a) => byId.set(a.id, a));
-
-    const counts = new Map();
-    const occurrences = [];
-    ADMIN_POOL.forEach((a) => {
-      const keys = [a.name, ...(a.aliases ?? [])].map(normalizeName).filter(Boolean);
-      keys.forEach((k) => {
-        counts.set(k, (counts.get(k) ?? 0) + 1);
-        occurrences.push({ key: k, adminId: a.id });
+      items.push({
+        dayIndex: d,
+        periodKey: PERIODS[p].key,
+        admin: pick,
+        isSub: false,
       });
-    });
+    }
+  }
+  return items;
+}
 
-    const dup = new Set();
-    for (const [k, c] of counts.entries()) if (c > 1) dup.add(k);
+useEffect(() => {
+  if (!adminPool.length) return;
 
-    const map = new Map();
-    occurrences.forEach((o) => {
-      if (!dup.has(o.key)) map.set(o.key, o.adminId);
-    });
+  const next = makeDummyWeek(week, adminPool);
+  setCells(next);
+  setOriginalCells(next);
+  setIsEdit(false);
+  setDraftInputs({});
+  setSuggestOpenFor(null);
+  setHighlightIndex(0);
+}, [week, adminPool]);
 
-    const list = ADMIN_POOL.map((a) => ({ id: a.id, name: a.name }));
+const { exactMap, adminById, candidates } = useMemo(() => {
+  const byId = new Map();
+  const map = new Map();
 
-    return { exactMap: map, adminById: byId, duplicateKeys: dup, candidates: list };
-  }, []);
+  adminPool.forEach((a) => {
+    byId.set(a.id, a);
+
+    const key = normalizeName(a.name);
+    if (key) map.set(key, a.id); // 동명이인 없음 전제
+  });
+
+  const list = adminPool.map((a) => ({
+    id: a.id,
+    name: a.name,
+  }));
+
+  return { exactMap: map, adminById: byId, candidates: list };
+}, [adminPool]);
 
   const map = useMemo(() => {
     const m = new Map();
@@ -176,10 +168,6 @@ export default function WeekSchedulePanel() {
   function resolveText(text) {
     const n = normalizeName(text);
     if (!n) return { resolvedAdminId: null, error: null };
-
-    if (duplicateKeys.has(n)) {
-      return { resolvedAdminId: null, error: "동명이인/중복 별칭이 있어요. 더 정확히 입력해줘요." };
-    }
 
     const id = exactMap.get(n);
     if (id) return { resolvedAdminId: id, error: null };
@@ -339,6 +327,14 @@ export default function WeekSchedulePanel() {
     return null;
   }, [now]);
 
+  if (loadingAdmins) {
+  return <Panel title="주차별 시간표">관리자 불러오는 중...</Panel>;
+  }
+
+  if (adminError) {
+    return <Panel title="주차별 시간표">오류: {adminError}</Panel>;
+  }
+
   return (
     <Panel
       title="주차별 시간표"
@@ -371,7 +367,7 @@ export default function WeekSchedulePanel() {
     >
       {isEdit && (
         <div className={styles.editHint}>
-          이름을 입력하면 자동 배정돼요. 공백이면 빈칸. (Enter: 다음 / Shift+Enter: 이전 / Tab: 후보 적용 / ↑↓: 후보 이동 / Esc: 현재 칸 원복)
+          (Enter: 다음 / Shift+Enter: 이전 / Tab: 후보 적용 / ↑↓: 후보 이동 / Esc: 현재 칸 원복)
           {hasErrors && <span className={styles.hintError}> — 오류가 있어 저장할 수 없어요</span>}
           {!hasErrors && isDirty && <span className={styles.hintDirty}> — 변경 {dirtyCount}개</span>}
         </div>
@@ -381,7 +377,7 @@ export default function WeekSchedulePanel() {
         <div className={styles.corner} />
 
         {DAYS.map((d, idx) => (
-          <div key={d} className={`${styles.dayHeader} ${idx === todayIndex ? styles.todayHeader : ""}`}>
+          <div key={d} className={styles.dayHeader}>
             {d}
           </div>
         ))}
@@ -528,7 +524,6 @@ export default function WeekSchedulePanel() {
                               </button>
                             ))}
 
-                            <div className={styles.suggestBottom}>* 정확히 매칭되면 자동 배정, 아니면 후보에서 선택해줘요.</div>
                           </div>
                         )}
                       </div>
