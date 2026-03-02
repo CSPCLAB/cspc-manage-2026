@@ -129,21 +129,43 @@ export default function D105() {
   const layoutScale = layoutScalePct / 100;
 
   useEffect(() => {
+    const MIN_PCT = 70;
+    const PADDING_SAFETY = 8; // 아주 살짝 여유(하단 1~2px 잘림 방지)
+
     function updateScale() {
-      const vh = window.innerHeight;
-      const available = vh - 200; // topbar + padding + safety buffer
-      const pct = Math.floor(Math.min(100, (available / BASE_LAYOUT_HEIGHT) * 100));
-      const clamped = Math.max(70, pct); // 너무 작아지면 UI가 망가져서 하한선
+      const container = roomRef.current;
+      const target = scaleTargetRef.current;
+
+      // available height inside the room frame
+      const available = (container?.clientHeight || window.innerHeight) - PADDING_SAFETY;
+
+      // unscaled content height (transform은 offsetHeight에 영향 없음)
+      const contentH = target?.offsetHeight || BASE_LAYOUT_HEIGHT;
+
+      const pct = Math.floor(Math.min(100, (available / contentH) * 100));
+      const clamped = Math.max(MIN_PCT, pct);
       setLayoutScalePct(clamped);
     }
 
     updateScale();
+
+    // react to container resize too (not only window)
+    let ro;
+    if (roomRef.current && "ResizeObserver" in window) {
+      ro = new ResizeObserver(() => updateScale());
+      ro.observe(roomRef.current);
+    }
+
     window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
+    return () => {
+      window.removeEventListener("resize", updateScale);
+      if (ro) ro.disconnect();
+    };
   }, []);
 
   // --- seat popover (말풍선) ---
   const roomRef = useRef(null);
+  const scaleTargetRef = useRef(null);
   const popoverRef = useRef(null);
   const [popover, setPopover] = useState({ open: false, top: 0, left: 0 });
 
@@ -1029,6 +1051,7 @@ export default function D105() {
                 </div>
               )}
               <div
+                ref={scaleTargetRef}
                 style={{
                   transform: `scale(${layoutScale})`,
                   transformOrigin: "top left",
