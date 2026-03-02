@@ -175,7 +175,7 @@ export default function D104() {
     let left = cellRect.right - roomRect.left + 12;
 
     // Keep it within the room frame width if possible
-    const POPOVER_W = 340;
+    const POPOVER_W = 320;
     const POPOVER_PAD = 12;
     const maxLeft = roomRect.width - POPOVER_W - POPOVER_PAD;
     if (left > maxLeft) {
@@ -466,10 +466,9 @@ export default function D104() {
       flexDirection: "column",
       overflow: "hidden",
       background: C.bg,
-      padding: 16,
+      padding: 14,
       boxSizing: "border-box",
-      fontFamily:
-        "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
+      fontFamily: "inherit",
       color: C.text,
     },
 
@@ -477,12 +476,12 @@ export default function D104() {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "14px 18px",
-      borderRadius: 16,
+      padding: "10px 12px",
+      borderRadius: 14,
       background: C.card,
       border: `1px solid ${C.border}`,
       boxShadow: "0 4px 20px rgba(92,82,72,.07)",
-      marginBottom: 16,
+      marginBottom: 12,
     },
 
     brand: { display: "flex", alignItems: "center", gap: 12 },
@@ -491,7 +490,7 @@ export default function D104() {
 
     navPill: {
       textDecoration: "none",
-      padding: "5px 12px",
+      padding: "4px 10px",
       borderRadius: 999,
       border: `1px solid ${C.border}`,
       background: C.card,
@@ -503,7 +502,7 @@ export default function D104() {
 
     navPillActive: {
       textDecoration: "none",
-      padding: "5px 12px",
+      padding: "4px 10px",
       borderRadius: 999,
       border: `1px solid ${C.accent}`,
       background: C.accent,
@@ -515,7 +514,7 @@ export default function D104() {
 
     title: {
       margin: 0,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: 700,
       color: C.text,
       letterSpacing: "-0.2px",
@@ -530,7 +529,7 @@ export default function D104() {
 
     linkBtn: {
       textDecoration: "none",
-      padding: "8px 14px",
+      padding: "7px 12px",
       borderRadius: 12,
       border: `1px solid ${C.accent}`,
       background: C.accent,
@@ -542,8 +541,8 @@ export default function D104() {
 
     layout: {
       display: "grid",
-      gridTemplateColumns: "1fr 380px",
-      gap: 16,
+      gridTemplateColumns: "1fr 360px",
+      gap: 12,
       alignItems: "start",
       flex: 1,
       minHeight: 0,
@@ -562,7 +561,7 @@ export default function D104() {
     },
 
     leftWrap: {
-      padding: 18,
+      padding: 14,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -573,7 +572,7 @@ export default function D104() {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: 14,
+      marginBottom: 10,
     },
 
     leftHeaderTitle: {
@@ -591,8 +590,8 @@ export default function D104() {
       position: "relative",
       background: C.bg,
       border: `1px solid ${C.border}`,
-      borderRadius: 14,
-      padding: 16,
+      borderRadius: 12,
+      padding: 12,
       flex: 1,
       overflow: "auto",
     },
@@ -600,21 +599,21 @@ export default function D104() {
     grid: {
       display: "grid",
       gridTemplateColumns: `repeat(${COLS}, 1fr)`,
-      gap: 10,
+      gap: 6,
       alignItems: "stretch",
     },
 
     cellEmpty: {
-      height: 54,
-      borderRadius: 14,
+      height: 44,
+      borderRadius: 12,
       border: `1px dashed ${C.border}`,
       background: "transparent",
       boxSizing: "border-box",
     },
 
     cellPodium: {
-      height: 54,
-      borderRadius: 14,
+      height: 44,
+      borderRadius: 12,
       border: `1px solid ${C.borderMed}`,
       background: C.podium,
       display: "grid",
@@ -628,8 +627,8 @@ export default function D104() {
     },
 
     cellPc: (active, hasReq) => ({
-      height: 54,
-      borderRadius: 14,
+      height: 44,
+      borderRadius: 12,
       border: active
         ? `2px solid ${C.accentHover}`
         : hasReq
@@ -652,7 +651,7 @@ export default function D104() {
     }),
 
     formWrap: {
-      padding: 18,
+      padding: 14,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -663,8 +662,8 @@ export default function D104() {
       borderRadius: 14,
       border: `1px solid ${C.border}`,
       background: C.card,
-      padding: 14,
-      marginBottom: 14,
+      padding: 12,
+      marginBottom: 10,
     },
 
     infoHead: {
@@ -720,7 +719,7 @@ export default function D104() {
 
     input: {
       width: "100%",
-      height: 40,
+      height: 36,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -728,12 +727,12 @@ export default function D104() {
       color: C.text,
       outline: "none",
       boxSizing: "border-box",
-      fontSize: 13,
+      fontSize: 12,
     },
 
     select: {
       width: "100%",
-      height: 40,
+      height: 36,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -741,7 +740,7 @@ export default function D104() {
       color: C.text,
       outline: "none",
       boxSizing: "border-box",
-      fontSize: 13,
+      fontSize: 12,
     },
 
 
@@ -751,7 +750,7 @@ export default function D104() {
 
     submit: {
       width: "100%",
-      height: 44,
+      height: 40,
       borderRadius: 12,
       border: `1px solid ${C.accent}`,
       background: C.accent,
@@ -770,7 +769,7 @@ export default function D104() {
       borderRadius: 14,
       background: C.bg,
       border: `1px solid ${C.border}`,
-      padding: 14,
+      padding: 12,
       boxSizing: "border-box",
       overflow: "auto",
       color: C.text,
@@ -784,7 +783,7 @@ export default function D104() {
     },
 
     item: {
-      padding: 12,
+      padding: 10,
       borderRadius: 12,
       border: `1px solid ${C.border}`,
       background: C.card,
@@ -850,7 +849,7 @@ export default function D104() {
 
     popover: {
       position: "absolute",
-      width: 340,
+      width: 320,
       borderRadius: 14,
       border: `1px solid ${C.borderMed}`,
       background: C.card,
