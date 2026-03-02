@@ -13,6 +13,23 @@ const PERIODS = [
   { key: 6, label: "6교시", start: "16:30", end: "17:45" },
 ];
 
+const DAY_TO_INDEX = {
+  월: 0,
+  화: 1,
+  수: 2,
+  목: 3,
+  금: 4,
+  토: 5,
+  일: 6,
+};
+
+function dayIndexFromKoreanDay(dayOfWeek) {
+  if (!dayOfWeek) return null;
+  // "월요일" -> "월"
+  const key = String(dayOfWeek).trim().charAt(0);
+  return DAY_TO_INDEX[key] ?? null;
+}
+
 function hexToRgba(hex, alpha = 0.12) {
   if (!hex) return `rgba(0,0,0,0.03)`;
   const h = hex.replace("#", "");
@@ -92,17 +109,101 @@ function makeDummyWeek(weekNumber, pool) {
   return items;
 }
 
+const [loadingSchedule, setLoadingSchedule] = useState(false);
+const [scheduleError, setScheduleError] = useState(null);
+
 useEffect(() => {
   if (!adminPool.length) return;
 
-  const next = makeDummyWeek(week, adminPool);
-  setCells(next);
-  setOriginalCells(next);
-  setIsEdit(false);
-  setDraftInputs({});
-  setSuggestOpenFor(null);
-  setHighlightIndex(0);
-}, [week, adminPool]);
+  let alive = true;
+
+  const fetchTodaySchedule = async () => {
+    setLoadingSchedule(true);
+    setScheduleError(null);
+
+    try {
+      const res = await fetch("/api/schedules/today");
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok || !payload?.success) {
+        throw new Error(payload?.message || "시간표 불러오기 실패");
+      }
+
+      const weekNum = payload?.data?.week_number;
+      if (Number.isFinite(Number(weekNum)) && alive) {
+        setWeek(Number(weekNum));
+      }
+
+      const schedules = payload?.data?.schedules ?? [];
+      const nextCells = schedules
+        .map((s) => {
+          const slot = s?.Timetable_Slots;
+          const dayIndex = dayIndexFromKoreanDay(slot?.day_of_week);
+          const periodKey = Number(slot?.period_number);
+
+          if (dayIndex == null || !Number.isFinite(periodKey)) return null;
+
+          // admin: 서버 응답(Admin_Users) 우선 사용
+          const au = s?.Admin_Users;
+          const admin =
+            au && (s.assigned_admin_id != null)
+              ? {
+                  id: s.assigned_admin_id,
+                  name: au.name,
+                  color: au.color_hex,
+                }
+              : null;
+
+          return {
+            dayIndex,
+            periodKey,
+            admin,
+            isSub: Boolean(s?.is_substitute),
+          };
+        })
+        .filter(Boolean);
+
+      // 혹시 서버가 누락된 칸이 있을 수 있으니, 기본 7*6 그리드로 채우기
+      // (없는 칸은 admin=null로)
+      const filled = [];
+      const mapFromApi = new Map(nextCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c]));
+      for (let d = 0; d < DAYS.length; d++) {
+        for (let p = 0; p < PERIODS.length; p++) {
+          const k = keyOf(d, PERIODS[p].key);
+          filled.push(
+            mapFromApi.get(k) ?? {
+              dayIndex: d,
+              periodKey: PERIODS[p].key,
+              admin: null,
+              isSub: false,
+            }
+          );
+        }
+      }
+
+      if (!alive) return;
+
+      setCells(filled);
+      setOriginalCells(filled);
+      setIsEdit(false);
+      setDraftInputs({});
+      setSuggestOpenFor(null);
+      setHighlightIndex(0);
+    } catch (e) {
+      if (!alive) return;
+      setScheduleError(e?.message || "시간표 불러오기 오류");
+    } finally {
+      if (!alive) return;
+      setLoadingSchedule(false);
+    }
+  };
+
+  fetchTodaySchedule();
+
+  return () => {
+    alive = false;
+  };
+}, [adminPool]);
 
 const { exactMap, adminById, candidates } = useMemo(() => {
   const byId = new Map();
@@ -327,12 +428,12 @@ const { exactMap, adminById, candidates } = useMemo(() => {
     return null;
   }, [now]);
 
-  if (loadingAdmins) {
-  return <Panel title="주차별 시간표">관리자 불러오는 중...</Panel>;
+  if (loadingAdmins || loadingSchedule) {
+    return <Panel title="주차별 시간표">시간표 불러오는 중...</Panel>;
   }
 
-  if (adminError) {
-    return <Panel title="주차별 시간표">오류: {adminError}</Panel>;
+  if (adminError || scheduleError) {
+    return <Panel title="주차별 시간표">오류: {adminError || scheduleError}</Panel>;
   }
 
   return (

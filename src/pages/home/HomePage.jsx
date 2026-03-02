@@ -10,7 +10,7 @@ import AdminAuthPanel from "./components/AdminAuthPanel";
 import LateRankPanel from "./components/LateRankPanel";
 
 export default function HomePage() {
-  const NOTION_URL = import.meta.env.VITE_NOTION_URL || "https://www.notion.so/";
+  const NOTION_URL = import.meta.env.VITE_NOTION_URL || "https://www.notion.so/cspclab/CSPC-LAB-40d34473aee644978b4bef89c6db55c2";
   const navigate = useNavigate();
 
   const [adminPool, setAdminPool] = useState([]);

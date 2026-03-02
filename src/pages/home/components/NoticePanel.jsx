@@ -11,12 +11,7 @@ export default function NoticePanel() {
   return (
     <Panel title="공지사항" className={styles.panelFull}>
       <ul className={styles.list}>
-        {DUMMY.map((n) => (
-          <li key={n.id} className={styles.item}>
-            <div className={styles.cat}>{n.category}</div>
-            <div className={styles.title}>{n.title}</div>
-          </li>
-        ))}
+
       </ul>
     </Panel>
   );
