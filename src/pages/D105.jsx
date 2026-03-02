@@ -123,62 +123,8 @@ export default function D105() {
   // ===== 선택 좌석 =====
   const [selectedSeatNumber, setSelectedSeatNumber] = useState(allSeats[0] ?? 1);
 
-  // ===== 레이아웃 스케일링(퍼센트) =====
-  const BASE_LAYOUT_HEIGHT = 860; // 100%일 때 배치도(좌석 영역) 기준 높이(대략)
-  const [layoutScalePct, setLayoutScalePct] = useState(100); // 0~100
-  const layoutScale = layoutScalePct / 100;
-
-  useEffect(() => {
-    const MIN_PCT = 70;
-    const MAX_PCT = 77; // 77% 크기가 보기 좋았던 사용자 선호
-    const SAFETY_PX = 12; // 하단/스크롤바/라인하이트 오차 여유
-
-    function updateScale() {
-      const container = roomRef.current;
-      const target = scaleTargetRef.current;
-
-      // 1) 실제 컨테이너(프레임) 높이
-      const frameH = container?.getBoundingClientRect?.().height ?? window.innerHeight;
-
-      // 2) 프레임의 padding을 빼고, 아주 약간의 안전 여유를 더 뺌
-      let padY = 0;
-      if (container && typeof window !== "undefined") {
-        const cs = window.getComputedStyle(container);
-        padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-      }
-      const available = Math.max(0, frameH - padY - SAFETY_PX);
-
-      // 3) 스케일 전 콘텐츠 높이(Transform은 scrollHeight/offsetHeight에 영향 없음)
-      const contentH = target?.scrollHeight || target?.offsetHeight || BASE_LAYOUT_HEIGHT;
-
-      // 4) 퍼센트 계산 (100%가 경계에서 자주 "살짝" 잘리니까 contentH가 더 크면 99로 내림)
-      let pct = Math.floor(Math.min(100, (available / contentH) * 100));
-      if (pct >= 100 && contentH > available) pct = 99;
-
-      const clamped = Math.min(MAX_PCT, Math.max(MIN_PCT, pct));
-      setLayoutScalePct(clamped);
-    }
-
-    // 레이아웃이 완전히 자리잡은 다음 측정(초기 100% 잘림 방지)
-    requestAnimationFrame(() => requestAnimationFrame(updateScale));
-
-    // react to container resize too (not only window)
-    let ro;
-    if (roomRef.current && "ResizeObserver" in window) {
-      ro = new ResizeObserver(() => updateScale());
-      ro.observe(roomRef.current);
-    }
-
-    window.addEventListener("resize", updateScale);
-    return () => {
-      window.removeEventListener("resize", updateScale);
-      if (ro) ro.disconnect();
-    };
-  }, []);
-
   // --- seat popover (말풍선) ---
   const roomRef = useRef(null);
-  const scaleTargetRef = useRef(null);
   const popoverRef = useRef(null);
   const [popover, setPopover] = useState({ open: false, top: 0, left: 0 });
 
@@ -199,7 +145,7 @@ export default function D105() {
     let left = cellRect.right - roomRect.left + 12;
 
     // Keep it within the room frame width if possible
-    const POPOVER_W = 340;
+    const POPOVER_W = 320;
     const POPOVER_PAD = 12;
     const maxLeft = roomRect.width - POPOVER_W - POPOVER_PAD;
     if (left > maxLeft) {
@@ -467,12 +413,9 @@ export default function D105() {
 
   const styles = {
     page: {
-      height: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
+      minHeight: "100vh",
       background: C.bg,
-      padding: 22,
+      padding: 14,
       boxSizing: "border-box",
       fontFamily: "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
       color: C.text,
@@ -481,18 +424,18 @@ export default function D105() {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "14px 18px",
-      borderRadius: 16,
+      padding: "10px 12px",
+      borderRadius: 14,
       background: C.card,
       border: `1px solid ${C.border}`,
       boxShadow: "0 4px 20px rgba(92,82,72,.07)",
-      marginBottom: 16,
+      marginBottom: 12,
     },
     brand: { display: "flex", alignItems: "center", gap: 12 },
     navRow: { display: "flex", gap: 8, marginBottom: 6 },
     navPill: {
       textDecoration: "none",
-      padding: "5px 12px",
+      padding: "4px 10px",
       borderRadius: 999,
       border: `1px solid ${C.border}`,
       background: C.card,
@@ -503,7 +446,7 @@ export default function D105() {
     },
     navPillActive: {
       textDecoration: "none",
-      padding: "5px 12px",
+      padding: "4px 10px",
       borderRadius: 999,
       border: `1px solid ${C.accent}`,
       background: C.accent,
@@ -514,7 +457,7 @@ export default function D105() {
     },
     title: {
       margin: 0,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: 700,
       color: C.text,
       letterSpacing: "-0.2px",
@@ -527,7 +470,7 @@ export default function D105() {
     },
     linkBtn: {
       textDecoration: "none",
-      padding: "8px 14px",
+      padding: "7px 12px",
       borderRadius: 12,
       border: `1px solid ${C.accent}`,
       background: C.accent,
@@ -538,12 +481,9 @@ export default function D105() {
     },
     layout: {
       display: "grid",
-      gridTemplateColumns: "1fr 380px",
-      gap: 16,
+      gridTemplateColumns: "1fr 360px",
+      gap: 12,
       alignItems: "start",
-      flex: 1,
-      minHeight: 0,
-      overflow: "hidden",
     },
     card: {
       background: C.card,
@@ -551,23 +491,13 @@ export default function D105() {
       borderRadius: 18,
       boxShadow: "0 4px 20px rgba(92,82,72,.07)",
       color: C.text,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
     },
-    leftWrap: {
-      padding: 18,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
-    },
+    leftWrap: { padding: 14 },
     leftHeader: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: 14,
+      marginBottom: 10,
     },
     leftHeaderTitle: { fontWeight: 700, color: C.text, fontSize: 14 },
     leftHeaderHint: { fontSize: 12, color: C.subtext },
@@ -575,40 +505,36 @@ export default function D105() {
       position: "relative",
       background: C.bg,
       border: `1px solid ${C.border}`,
-      borderRadius: 14,
-      padding: 16,
-      paddingTop: 34,
-      paddingBottom: 28, // 하단이 잘려 보이지 않게 여유(둥근 모서리 유지)
-      flex: 1,
-      overflow: "auto",
-      boxSizing: "border-box",
+      borderRadius: 12,
+      padding: 12,
+      paddingTop: 28,
     },
     roomFlex: {
       display: "grid",
-      gridTemplateColumns: "1fr 72px",
-      gap: 10,
+      gridTemplateColumns: "1fr 64px",
+      gap: 8,
       alignItems: "start",
     },
     grid: {
       display: "grid",
       gridTemplateColumns: `repeat(${MAIN_COLS}, 1fr)`,
-      gap: 10,
+      gap: 6,
     },
     sideWrap: {
       position: "relative",
-      width: "72px",
+      width: "64px",
       overflow: "visible",
     },
     cellEmpty: {
-      height: 54,
-      borderRadius: 14,
+      height: 44,
+      borderRadius: 12,
       border: `1px dashed ${C.border}`,
       background: "transparent",
       boxSizing: "border-box",
     },
     cellPodium: {
-      height: 54,
-      borderRadius: 14,
+      height: 44,
+      borderRadius: 12,
       border: `1px solid ${C.borderMed}`,
       background: C.podium,
       display: "grid",
@@ -621,8 +547,8 @@ export default function D105() {
       letterSpacing: "0.3px",
     },
     cellPc: (active, isAlert) => ({
-      height: 54,
-      borderRadius: 14,
+      height: 44,
+      borderRadius: 12,
       border: active
         ? `2px solid ${C.accentHover}`
         : isAlert
@@ -643,7 +569,7 @@ export default function D105() {
       position: "absolute",
       left: 0,
       right: 0,
-      borderRadius: 14,
+      borderRadius: 12,
       border: active
         ? `2px solid ${C.accentHover}`
         : isAlert
@@ -660,19 +586,13 @@ export default function D105() {
       boxSizing: "border-box",
       transition: "background 0.15s, border-color 0.15s",
     }),
-    formWrap: {
-      padding: 18,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
-    },
+    formWrap: { padding: 14 },
     infoCard: {
       borderRadius: 14,
       border: `1px solid ${C.border}`,
       background: C.card,
-      padding: 14,
-      marginBottom: 14,
+      padding: 12,
+      marginBottom: 10,
     },
     infoHead: {
       display: "flex",
@@ -700,7 +620,7 @@ export default function D105() {
     },
     input: {
       width: "100%",
-      height: 40,
+      height: 36,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -708,11 +628,11 @@ export default function D105() {
       color: C.text,
       outline: "none",
       boxSizing: "border-box",
-      fontSize: 13,
+      fontSize: 12,
     },
     select: {
       width: "100%",
-      height: 40,
+      height: 36,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -720,12 +640,12 @@ export default function D105() {
       color: C.text,
       outline: "none",
       boxSizing: "border-box",
-      fontSize: 13,
+      fontSize: 12,
     },
     row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
     submit: {
       width: "100%",
-      height: 44,
+      height: 40,
       borderRadius: 12,
       border: `1px solid ${C.accent}`,
       background: C.accent,
@@ -737,11 +657,11 @@ export default function D105() {
       transition: "background 0.15s",
     },
     bigBox: {
-      flex: 1,
+      height: 210,
       borderRadius: 14,
       background: C.bg,
       border: `1px solid ${C.border}`,
-      padding: 14,
+      padding: 12,
       boxSizing: "border-box",
       overflow: "auto",
       color: C.text,
@@ -804,7 +724,7 @@ export default function D105() {
 
     popover: {
       position: "absolute",
-      width: 340,
+      width: 320,
       borderRadius: 14,
       border: `1px solid ${C.borderMed}`,
       background: C.card,
@@ -878,9 +798,7 @@ export default function D105() {
           <div style={styles.leftWrap}>
             <div style={styles.leftHeader}>
               <div style={styles.leftHeaderTitle}>PC 배치도</div>
-              <div style={styles.leftHeaderHint}>
-                PC 클릭 → 오른쪽에서 작성 · 화면맞춤 {layoutScalePct}%
-              </div>
+              <div style={styles.leftHeaderHint}>PC 클릭 → 오른쪽에서 작성</div>
             </div>
 
             <div style={styles.roomFrame} ref={roomRef}>
@@ -1071,15 +989,7 @@ export default function D105() {
                   </div>
                 </div>
               )}
-              <div
-                ref={scaleTargetRef}
-                style={{
-                  transform: `scale(${layoutScale})`,
-                  transformOrigin: "top left",
-                  width: `${100 / (layoutScale || 1)}%`,
-                }}
-              >
-                <div style={styles.roomFlex}>
+              <div style={styles.roomFlex}>
                 <div style={styles.grid}>
                   {mainGrid.flatMap((row, rIdx) =>
                     row.map((cell, cIdx) => {
@@ -1108,8 +1018,8 @@ export default function D105() {
 
                 {/* 오른쪽 세로열 */}
                 {(() => {
-                  const CELL_H = 54;
-                  const GAP = 10;
+                  const CELL_H = 44;
+                  const GAP = 6;
                   const STEP = CELL_H + GAP;
                   const INTRA_GAP = 4;
                   const PAIR_EXTRA = 4;
@@ -1150,7 +1060,6 @@ export default function D105() {
                     </div>
                   );
                 })()}
-                </div>
               </div>
             </div>
 
