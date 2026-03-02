@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./AdminPage.module.css";
 
-// 관리자용: API만 대충 붙여서 버튼/폼으로 호출
-// ✅ 요구사항: "주차별 시간표 변경(PATCH /api/admin/schedules/:weekly_id)" 는 만들지 않음
 export default function AdminPage() {
   const ENV_API_BASE = import.meta.env.VITE_API_BASE_URL || ""; // 예: http://localhost:3000 또는 https://xxx.supabase.co/functions/v1
   const [apiBase, setApiBase] = useState(ENV_API_BASE);
@@ -29,8 +27,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
-  // ====== 학회원 컬러 풀(프론트에서만 사용, UI에는 안 띄움) ======
-  // 팀에서 원하는 컬러로 여기만 수정하면 됨
+  // ====== 학회원 컬러 풀(프론트에서만 사용, UI에는 표시하지 않음) ======
   const USER_COLOR_POOL = [
     "#ef4444", // red
     "#f97316", // orange
@@ -142,15 +139,15 @@ export default function AdminPage() {
       );
 
       if (!res.ok) {
-        alert(`요청 실패: ${res.status} (로그 확인)`);
+        alert(`요청에 실패했습니다. (HTTP ${res.status}) 로그를 확인해 주세요.`);
       } else {
-        alert("완료! (로그 확인)");
+        alert("요청이 완료되었습니다. 로그를 확인해 주세요.");
       }
 
       return { ok: res.ok, status: res.status, data };
     } catch (e) {
       setLog((prev) => prev + `\n❌ Error: ${String(e)}`);
-      alert("요청 중 에러남 (로그 확인)");
+      alert("요청 처리 중 오류가 발생했습니다. 로그를 확인해 주세요.");
       return { ok: false, status: 0, data: null };
     } finally {
       setBusy(false);
@@ -159,9 +156,6 @@ export default function AdminPage() {
 
   const loadUsers = async () => {
     setUsersLoading(true);
-    // 로딩 시작 시점에 UI가 멈춘 것처럼 보이는 거 방지
-    // (원하면 아래 줄 주석처리해도 됨)
-    // setUsers([]);
     setLog((prev) => prev + `\n\n▶ GET ${effectiveBase || "(same-origin)"}/api/admin/users`);
 
     try {
@@ -185,7 +179,7 @@ export default function AdminPage() {
       );
 
       if (!res.ok) {
-        alert(`학회원 목록 불러오기 실패: ${res.status} (로그 확인)`);
+        alert(`학회원 목록을 불러오지 못했습니다. (HTTP ${res.status}) 로그를 확인해 주세요.`);
         setUsers([]);
         return;
       }
@@ -193,7 +187,7 @@ export default function AdminPage() {
       setUsers(normalizeUsers(data));
     } catch (e) {
       setLog((prev) => prev + `\n❌ Error: ${String(e)}`);
-      alert("학회원 목록 불러오다 에러남 (로그 확인)");
+      alert("학회원 목록을 불러오는 중 오류가 발생했습니다. 로그를 확인해 주세요.");
       setUsers([]);
     } finally {
       setUsersLoading(false);
@@ -217,7 +211,6 @@ export default function AdminPage() {
     );
   
     try {
-      // ⚠️ 서버 스펙에 따라 이 URL만 바꾸면 됨
       const qs = date ? `?date=${encodeURIComponent(date)}` : "";
       const res = await fetch(
         `${effectiveBase}/api/admin/users/${encodeURIComponent(uid)}/logs${qs}`,
@@ -257,16 +250,14 @@ export default function AdminPage() {
       return;
     }
     loadUserLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLogUserId, selectedLogDate]);
 
   useEffect(() => {
     loadUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resetSchedule = async () => {
-    if (!confirm("학기 시간표 리셋 ㄱ? (late_count 0 포함)")) return;
+    if (!confirm("학기 시간표를 초기화하시겠습니까? (late_count 초기화 포함)")) return;
     await request("POST", "/api/admin/schedules/init");
   };
 
@@ -274,7 +265,7 @@ export default function AdminPage() {
     e.preventDefault();
 
     if (!semesterStart) {
-      alert("개강일은 넣어라");
+      alert("개강일을 입력해 주세요.");
       return;
     }
 
@@ -291,7 +282,7 @@ export default function AdminPage() {
     e.preventDefault();
 
     if (!newUser.name.trim()) {
-      alert("이름은 넣어라");
+      alert("이름을 입력해 주세요.");
       return;
     }
 
@@ -299,17 +290,12 @@ export default function AdminPage() {
 
     const result = await request("POST", "/api/admin/users", {
       name: newUser.name.trim(),
-      // 서버가 이 필드를 무시해도 상관없음(프론트에서만 쓰는 값)
       color: autoColor,
     });
     
     setNewUser({ name: "" });
 
     if (result?.ok) {
-      // ✅ POST 응답이 "생성된 유저"를 안 주는 서버도 있어서
-      // 1) 응답에서 한 명 뽑아보고
-      // 2) 있으면 화면을 즉시 갱신
-      // 3) 없으면 그냥 GET으로 다시 불러오기
       const created = normalizeOneUser(result.data);
       if (created) {
         setUsers((prev) => {
@@ -325,8 +311,6 @@ export default function AdminPage() {
           });
         });
       } else {
-        // 서버가 created row를 안 돌려주면, 일단 프론트에만 임시로 꽂아두고
-        // 다음에 GET으로 다시 동기화해도 됨
         setUsers((prev) => [{ id: `tmp-${Date.now()}`, name: newUser.name.trim(), color: autoColor }, ...prev]);
         loadUsers();
       }
@@ -338,7 +322,7 @@ export default function AdminPage() {
 
     const name = deleteUserName.trim();
     if (!name) {
-      alert("삭제할 이름 넣어라");
+      alert("삭제할 이름을 입력해 주세요.");
       return;
     }
 
@@ -350,7 +334,7 @@ export default function AdminPage() {
     });
 
     if (matches.length === 0) {
-      alert(`해당 이름 못 찾음: ${name}`);
+      alert(`해당 이름의 학회원을 찾을 수 없습니다: ${name}`);
       return;
     }
 
@@ -359,7 +343,7 @@ export default function AdminPage() {
         .map((u) => u.id ?? u.user_id ?? u.admin_id ?? u.uuid)
         .filter((v) => v != null)
         .join(", ");
-      alert(`이름이 중복됨: ${name}\n해당 id들: ${ids}\n(중복 정리하거나, 목록에서 삭제 버튼으로 지워라)`);
+      alert(`이름이 중복됩니다: ${name}\n해당 ID 목록: ${ids}\n목록의 삭제 버튼을 사용해 원하는 항목을 삭제해 주세요.`);
       return;
     }
 
@@ -367,11 +351,11 @@ export default function AdminPage() {
     const id = target.id ?? target.user_id ?? target.admin_id ?? target.uuid;
 
     if (id == null || id === "") {
-      alert("삭제할 id를 못 찾음 (API 응답 필드 확인 필요)");
+      alert("삭제할 ID를 확인할 수 없습니다. API 응답 필드를 확인해 주세요.");
       return;
     }
 
-    if (!confirm(`학회원 삭제 ㄱ? ${name} (id=${id})`)) return;
+    if (!confirm(`학회원 '${name}'(ID: ${id})을(를) 삭제하시겠습니까?`)) return;
     const result = await request("DELETE", `/api/admin/users/${encodeURIComponent(id)}`);
     if (result?.ok) {
       setDeleteUserName("");
@@ -442,7 +426,7 @@ export default function AdminPage() {
           <p className={styles.cardDesc}>
             <b>POST</b> /api/admin/schedules/init
             <br />
-            시간표 초기화 + (설명에 적힌 대로면) Admin_Users late_count도 0으로
+            시간표를 초기화하며, 설정에 따라 Admin_Users의 late_count도 0으로 초기화됩니다.
           </p>
 
           <button className={styles.dangerBtn} onClick={resetSchedule} disabled={disabled}>
@@ -538,7 +522,7 @@ export default function AdminPage() {
                 className={styles.input}
                 value={deleteUserName}
                 onChange={(e) => setDeleteUserName(e.target.value)}
-                placeholder="예) 김준일"
+                placeholder="예) 유재중"
                 disabled={disabled}
               />
             </label>
@@ -573,61 +557,61 @@ export default function AdminPage() {
           </div>
 
           <div style={userListStyle}>
-            {users.length === 0 ? (
-              <div style={{ padding: 10, color: "rgba(17,24,39,0.6)", fontSize: 13 }}>
-                {usersLoading ? "불러오는중..." : "목록 없음 (또는 API 응답 파싱 실패)"}
-              </div>
-            ) : (
-              users.map((u, idx) => {
-                const id = u.id ?? u.user_id ?? u.admin_id ?? u.uuid ?? idx;
-                const name = u.name ?? u.username ?? "(이름없음)";
-
-                return (
-                  <div
-                    key={String(id)}
-                    style={{ ...userRowStyle, cursor: "pointer" }}
-                    onClick={() => {
-                      setSelectedLogUserId(String(id));
-                    }}
-                    title="클릭하면 아래 유저 로그에 선택됨"
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 900, color: "#111827", lineHeight: 1.2 }}>
-                        {name}
-                      </div>
-                      <div
-                        style={{
-                          marginTop: 4,
-                          fontSize: 12,
-                          color: "rgba(17,24,39,0.6)",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {`id: ${String(id)}`}
-                      </div>
-                    </div>  
-
-                    <button
-                      style={smallDangerBtnStyle}
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (!confirm(`삭제 ㄱ? ${name} (id=${id})`)) return;
-                        const result = await request(
-                          "DELETE",
-                          `/api/admin/users/${encodeURIComponent(id)}`
-                        );
-                        if (result?.ok) loadUsers();
-                      }}
-                      disabled={disabled}
-                      title="이 학회원 삭제"
-                    >
-                      삭제
-                    </button>
+                {users.length === 0 ? (
+                  <div style={{ padding: 10, color: "rgba(17,24,39,0.6)", fontSize: 13 }}>
+                    {usersLoading ? "불러오는 중..." : "표시할 학회원이 없습니다. (또는 API 응답 파싱에 실패했습니다.)"}
                   </div>
-                );
-              })
-            )}
+                ) : (
+                  users.map((u, idx) => {
+                    const id = u.id ?? u.user_id ?? u.admin_id ?? u.uuid ?? idx;
+                    const name = u.name ?? u.username ?? "(이름없음)";
+
+                    return (
+                      <div
+                        key={String(id)}
+                        style={{ ...userRowStyle, cursor: "pointer" }}
+                        onClick={() => {
+                          setSelectedLogUserId(String(id));
+                        }}
+                        title="클릭하면 유저 로그에서 해당 학회원이 선택됩니다."
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 900, color: "#111827", lineHeight: 1.2 }}>
+                            {name}
+                          </div>
+                          <div
+                            style={{
+                              marginTop: 4,
+                              fontSize: 12,
+                              color: "rgba(17,24,39,0.6)",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {`id: ${String(id)}`}
+                          </div>
+                        </div>  
+
+                        <button
+                          style={smallDangerBtnStyle}
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(`'${name}'(ID: ${id})을(를) 삭제하시겠습니까?`)) return;
+                            const result = await request(
+                              "DELETE",
+                              `/api/admin/users/${encodeURIComponent(id)}`
+                            );
+                            if (result?.ok) loadUsers();
+                          }}
+                          disabled={disabled}
+                          title="이 학회원 삭제"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
           </div>
         </section>
 
@@ -705,23 +689,23 @@ export default function AdminPage() {
             className={styles.log}
             value={userLogs}
             readOnly
-            placeholder="학회원 선택하면 자동으로 로그가 뜸 (날짜 선택하면 필터)"
+            placeholder="학회원을 선택하면 로그가 자동으로 표시됩니다. 날짜를 선택하면 필터링됩니다."
             style={{ minHeight: 380 }}
           />
 
           <details style={{ marginTop: 12 }}>
             <summary style={{ cursor: "pointer", fontWeight: 900, color: "rgba(17,24,39,0.75)" }}>
-              API 디버그 로그
+              API 디버그 로그 (관리자 확인용)
             </summary>
             <textarea
               className={styles.log}
               value={log}
               onChange={(e) => setLog(e.target.value)}
               style={{ minHeight: 220, marginTop: 10 }}
-            />
-          </details>
+            />  
+          </details> 
         </section>
       </div>
-    </div>
-  );
+    </div>  
+  ); 
 }
