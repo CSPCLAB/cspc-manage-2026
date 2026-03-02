@@ -130,24 +130,36 @@ export default function D105() {
 
   useEffect(() => {
     const MIN_PCT = 70;
-    const PADDING_SAFETY = 8; // 아주 살짝 여유(하단 1~2px 잘림 방지)
+    const SAFETY_PX = 12; // 하단/스크롤바/라인하이트 오차 여유
 
     function updateScale() {
       const container = roomRef.current;
       const target = scaleTargetRef.current;
 
-      // available height inside the room frame
-      const available = (container?.clientHeight || window.innerHeight) - PADDING_SAFETY;
+      // 1) 실제 컨테이너(프레임) 높이
+      const frameH = container?.getBoundingClientRect?.().height ?? window.innerHeight;
 
-      // unscaled content height (transform은 offsetHeight에 영향 없음)
-      const contentH = target?.offsetHeight || BASE_LAYOUT_HEIGHT;
+      // 2) 프레임의 padding을 빼고, 아주 약간의 안전 여유를 더 뺌
+      let padY = 0;
+      if (container && typeof window !== "undefined") {
+        const cs = window.getComputedStyle(container);
+        padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      }
+      const available = Math.max(0, frameH - padY - SAFETY_PX);
 
-      const pct = Math.floor(Math.min(100, (available / contentH) * 100));
+      // 3) 스케일 전 콘텐츠 높이(Transform은 scrollHeight/offsetHeight에 영향 없음)
+      const contentH = target?.scrollHeight || target?.offsetHeight || BASE_LAYOUT_HEIGHT;
+
+      // 4) 퍼센트 계산 (100%가 경계에서 자주 "살짝" 잘리니까 contentH가 더 크면 99로 내림)
+      let pct = Math.floor(Math.min(100, (available / contentH) * 100));
+      if (pct >= 100 && contentH > available) pct = 99;
+
       const clamped = Math.max(MIN_PCT, pct);
       setLayoutScalePct(clamped);
     }
 
-    updateScale();
+    // 레이아웃이 완전히 자리잡은 다음 측정(초기 100% 잘림 방지)
+    requestAnimationFrame(() => requestAnimationFrame(updateScale));
 
     // react to container resize too (not only window)
     let ro;
