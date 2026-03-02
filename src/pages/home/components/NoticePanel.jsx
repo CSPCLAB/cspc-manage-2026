@@ -11,7 +11,7 @@ export default function NoticePanel() {
   return (
     <Panel title="공지사항" className={styles.panelFull}>
       <ul className={styles.list}>
-
+        <h3>vercel 확인용 배포</h3>
       </ul>
     </Panel>
   );
