@@ -3,6 +3,16 @@ import { Link } from "react-router-dom";
 
 export default function D105() {
   const MAIN_COLS = 10;
+  // ===== responsive sizing (small laptop friendly) =====
+  const CELL_H = "clamp(34px, 4.2vh, 54px)";        // seat cell height
+  const GRID_GAP = "clamp(6px, 0.9vh, 10px)";        // gap between cells
+  const PAD_PAGE = "clamp(10px, 1.6vh, 16px)";
+  const PAD_CARD = "clamp(12px, 2.0vh, 18px)";
+  const INPUT_H = "clamp(34px, 3.8vh, 40px)";
+  const TOPBAR_MB = "clamp(10px, 1.6vh, 16px)";
+  const INFO_MB = "clamp(10px, 1.6vh, 14px)";
+  const LEFT_HDR_MB = "clamp(10px, 1.6vh, 14px)";
+  const ROOM_PAD_TOP = "clamp(22px, 3.0vh, 34px)";
   const LOCATION = "D105";
 
   // ===== 좌석 배치(프론트 고정) =====
@@ -414,9 +424,11 @@ export default function D105() {
   const styles = {
     page: {
       height: "100vh",
+      display: "flex",
+      flexDirection: "column",
       overflow: "hidden",
       background: C.bg,
-      padding: 22,
+      padding: PAD_PAGE,
       boxSizing: "border-box",
       fontFamily: "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
       color: C.text,
@@ -430,7 +442,7 @@ export default function D105() {
       background: C.card,
       border: `1px solid ${C.border}`,
       boxShadow: "0 4px 20px rgba(92,82,72,.07)",
-      marginBottom: 16,
+      marginBottom: TOPBAR_MB,
     },
     brand: { display: "flex", alignItems: "center", gap: 12 },
     navRow: { display: "flex", gap: 8, marginBottom: 6 },
@@ -485,8 +497,8 @@ export default function D105() {
       gridTemplateColumns: "1fr 380px",
       gap: 16,
       alignItems: "start",
-      height: "calc(100vh - 120px)",
-      overflow: "hidden",
+      flex: 1,
+      minHeight: 0,
     },
     card: {
       background: C.card,
@@ -497,18 +509,20 @@ export default function D105() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
     leftWrap: {
-      padding: 18,
+      padding: PAD_CARD,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
     leftHeader: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: 14,
+      marginBottom: LEFT_HDR_MB,
     },
     leftHeaderTitle: { fontWeight: 700, color: C.text, fontSize: 14 },
     leftHeaderHint: { fontSize: 12, color: C.subtext },
@@ -517,36 +531,38 @@ export default function D105() {
       background: C.bg,
       border: `1px solid ${C.border}`,
       borderRadius: 14,
-      padding: 16,
-      paddingTop: 34,
+      padding: PAD_PAGE,
+      paddingTop: ROOM_PAD_TOP,
       flex: 1,
       overflow: "auto",
     },
     roomFlex: {
       display: "grid",
       gridTemplateColumns: "1fr 72px",
-      gap: 10,
+      gap: GRID_GAP,
       alignItems: "start",
     },
     grid: {
       display: "grid",
       gridTemplateColumns: `repeat(${MAIN_COLS}, 1fr)`,
-      gap: 10,
+      gap: GRID_GAP,
     },
     sideWrap: {
-      position: "relative",
       width: "72px",
+      display: "flex",
+      flexDirection: "column",
+      gap: GRID_GAP,
       overflow: "visible",
     },
     cellEmpty: {
-      height: 54,
+      height: CELL_H,
       borderRadius: 14,
       border: `1px dashed ${C.border}`,
       background: "transparent",
       boxSizing: "border-box",
     },
     cellPodium: {
-      height: 54,
+      height: CELL_H,
       borderRadius: 14,
       border: `1px solid ${C.borderMed}`,
       background: C.podium,
@@ -560,7 +576,7 @@ export default function D105() {
       letterSpacing: "0.3px",
     },
     cellPc: (active, isAlert) => ({
-      height: 54,
+      height: CELL_H,
       borderRadius: 14,
       border: active
         ? `2px solid ${C.accentHover}`
@@ -579,9 +595,7 @@ export default function D105() {
       transition: "background 0.15s, border-color 0.15s",
     }),
     cellPcSide: (active, isAlert) => ({
-      position: "absolute",
-      left: 0,
-      right: 0,
+      height: CELL_H,
       borderRadius: 14,
       border: active
         ? `2px solid ${C.accentHover}`
@@ -600,17 +614,18 @@ export default function D105() {
       transition: "background 0.15s, border-color 0.15s",
     }),
     formWrap: {
-      padding: 18,
+      padding: PAD_CARD,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
     infoCard: {
       borderRadius: 14,
       border: `1px solid ${C.border}`,
       background: C.card,
       padding: 14,
-      marginBottom: 14,
+      marginBottom: INFO_MB,
     },
     infoHead: {
       display: "flex",
@@ -638,7 +653,7 @@ export default function D105() {
     },
     input: {
       width: "100%",
-      height: 40,
+      height: INPUT_H,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -650,7 +665,7 @@ export default function D105() {
     },
     select: {
       width: "100%",
-      height: 40,
+      height: INPUT_H,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -1034,50 +1049,31 @@ export default function D105() {
                   )}
                 </div>
 
-                {/* 오른쪽 세로열 */}
-                {(() => {
-                  const CELL_H = 54;
-                  const GAP = 10;
-                  const STEP = CELL_H + GAP;
-                  const INTRA_GAP = 4;
-                  const PAIR_EXTRA = 4;
-                  const seatRowIdxs = rows.map((r, idx) => (r.type === "seats" ? idx : null)).filter((v) => v !== null);
+                {/* 오른쪽 세로열 (row-aligned, responsive) */}
+                <div style={styles.sideWrap}>
+                  {rows.map((r, idx) => {
+                    if (r.type === "seats") {
+                      const num = r.side;
+                      return (
+                        <div
+                          key={`side-${idx}-${num}`}
+                          style={styles.cellPcSide(num === selectedSeatNumber, seatHasReqOrBroken(num))}
+                          onClick={(e) => openSeatPopover(num, e)}
+                          title={`PC ${num}`}
+                        >
+                          {num}
+                        </div>
+                      );
+                    }
 
-                  const top21 = seatRowIdxs[1] * STEP;
-                  const bottom76 = seatRowIdxs[6] * STEP + CELL_H;
-                  const rawSideH = (bottom76 - top21 - 5 * INTRA_GAP - 3 * PAIR_EXTRA) / 6;
-                  const SIDE_H = Math.max(24, rawSideH);
-                  const baseTop = top21 - (SIDE_H + INTRA_GAP);
+                    if (r.type === "podium") {
+                      return <div key={`side-${idx}-podium`} style={styles.cellEmpty} />;
+                    }
 
-                  const pairs = Math.ceil(seatRowIdxs.length / 2);
-                  const gapsCount = Math.max(0, seatRowIdxs.length - 1);
-                  const pairGaps = Math.max(0, pairs - 1);
-                  const wrapHeight =
-                    seatRowIdxs.length * SIDE_H + gapsCount * INTRA_GAP + pairGaps * PAIR_EXTRA;
-
-                  return (
-                    <div style={{ ...styles.sideWrap, height: wrapHeight }}>
-                      {seatRowIdxs.map((idx, seatPos) => {
-                        const num = rows[idx].side;
-                        const active = num === selectedSeatNumber;
-                        const accGap = seatPos * INTRA_GAP + Math.floor(seatPos / 2) * PAIR_EXTRA;
-                        const top = baseTop + seatPos * SIDE_H + accGap;
-                        const height = SIDE_H;
-
-                        return (
-                          <div
-                            key={`side-${num}`}
-                            style={{ ...styles.cellPcSide(active, seatHasReqOrBroken(num)), top, height }}
-                            onClick={(e) => openSeatPopover(num, e)}
-                            title={`PC ${num}`}
-                          >
-                            {num}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                    // aisle or unknown
+                    return <div key={`side-${idx}-empty`} style={styles.cellEmpty} />;
+                  })}
+                </div>
               </div>
             </div>
 
