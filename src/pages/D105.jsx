@@ -123,16 +123,18 @@ export default function D105() {
   // ===== 선택 좌석 =====
   const [selectedSeatNumber, setSelectedSeatNumber] = useState(allSeats[0] ?? 1);
 
-  // ===== 레이아웃 스케일링 =====
-  const BASE_LAYOUT_HEIGHT = 820; // approximate full layout height at 100%
-  const [layoutScale, setLayoutScale] = useState(1);
+  // ===== 레이아웃 스케일링(퍼센트) =====
+  const BASE_LAYOUT_HEIGHT = 820; // 100%일 때 배치도(좌석 영역) 기준 높이(대략)
+  const [layoutScalePct, setLayoutScalePct] = useState(100); // 0~100
+  const layoutScale = layoutScalePct / 100;
 
   useEffect(() => {
     function updateScale() {
       const vh = window.innerHeight;
-      const available = vh - 160; // subtract topbar + padding buffer
-      const scale = Math.min(1, available / BASE_LAYOUT_HEIGHT);
-      setLayoutScale(scale);
+      const available = vh - 160; // topbar + padding buffer
+      const pct = Math.floor(Math.min(100, (available / BASE_LAYOUT_HEIGHT) * 100));
+      const clamped = Math.max(70, pct); // 너무 작아지면 UI가 망가져서 하한선
+      setLayoutScalePct(clamped);
     }
 
     updateScale();
@@ -833,7 +835,9 @@ export default function D105() {
           <div style={styles.leftWrap}>
             <div style={styles.leftHeader}>
               <div style={styles.leftHeaderTitle}>PC 배치도</div>
-              <div style={styles.leftHeaderHint}>PC 클릭 → 오른쪽에서 작성</div>
+              <div style={styles.leftHeaderHint}>
+                PC 클릭 → 오른쪽에서 작성 · 화면맞춤 {layoutScalePct}%
+              </div>
             </div>
 
             <div style={styles.roomFrame} ref={roomRef}>
@@ -1028,7 +1032,7 @@ export default function D105() {
                 style={{
                   transform: `scale(${layoutScale})`,
                   transformOrigin: "top left",
-                  width: `${100 / layoutScale}%`,
+                  width: `${100 / (layoutScale || 1)}%`,
                 }}
               >
                 <div style={styles.roomFlex}>
