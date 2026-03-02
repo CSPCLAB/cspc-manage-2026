@@ -23,7 +23,7 @@ export default function AdminPage() {
   });
 
   // ====== 학회원 삭제 폼 ======
-  const [deleteUserId, setDeleteUserId] = useState("");
+  const [deleteUserName, setDeleteUserName] = useState("");
 
   // ====== 학회원 목록 ======
   const [users, setUsers] = useState([]);
@@ -336,15 +336,47 @@ export default function AdminPage() {
   const removeUser = async (e) => {
     e.preventDefault();
 
-    const id = deleteUserId.trim();
-    if (!id) {
-      alert("삭제할 user id 넣어라");
+    const name = deleteUserName.trim();
+    if (!name) {
+      alert("삭제할 이름 넣어라");
       return;
     }
 
-    if (!confirm(`학회원 삭제 ㄱ? id=${id}`)) return;
+    // 이름으로 users에서 찾기 (대소문자 무시, 완전일치 우선)
+    const lowered = name.toLowerCase();
+    const matches = (users || []).filter((u) => {
+      const uName = String(u.name ?? u.username ?? "").trim();
+      return uName && uName.toLowerCase() === lowered;
+    });
+
+    if (matches.length === 0) {
+      alert(`해당 이름 못 찾음: ${name}`);
+      return;
+    }
+
+    if (matches.length > 1) {
+      const ids = matches
+        .map((u) => u.id ?? u.user_id ?? u.admin_id ?? u.uuid)
+        .filter((v) => v != null)
+        .join(", ");
+      alert(`이름이 중복됨: ${name}\n해당 id들: ${ids}\n(중복 정리하거나, 목록에서 삭제 버튼으로 지워라)`);
+      return;
+    }
+
+    const target = matches[0];
+    const id = target.id ?? target.user_id ?? target.admin_id ?? target.uuid;
+
+    if (id == null || id === "") {
+      alert("삭제할 id를 못 찾음 (API 응답 필드 확인 필요)");
+      return;
+    }
+
+    if (!confirm(`학회원 삭제 ㄱ? ${name} (id=${id})`)) return;
     const result = await request("DELETE", `/api/admin/users/${encodeURIComponent(id)}`);
-    if (result?.ok) loadUsers();
+    if (result?.ok) {
+      setDeleteUserName("");
+      loadUsers();
+    }
   };
 
   const disabled = useMemo(() => busy, [busy]);
@@ -417,7 +449,7 @@ export default function AdminPage() {
             {busy ? "처리중..." : "리셋 실행"}
           </button>
         </section>
-
+ 
         {/* 2) 개강일 입력(주차 생성) */}
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>개강일 입력 (주차 생성)</h3>
@@ -501,12 +533,12 @@ export default function AdminPage() {
 
           <form onSubmit={removeUser} className={styles.form}>
             <label className={styles.label}>
-              user id
+              이름
               <input
                 className={styles.input}
-                value={deleteUserId}
-                onChange={(e) => setDeleteUserId(e.target.value)}
-                placeholder="예) 12"
+                value={deleteUserName}
+                onChange={(e) => setDeleteUserName(e.target.value)}
+                placeholder="예) 김준일"
                 disabled={disabled}
               />
             </label>
@@ -518,7 +550,7 @@ export default function AdminPage() {
         </section>
 
         {/* 5) 학회원 목록 (오른쪽) */}
-        <section className={styles.card} style={{ gridRow: "1 / span 4" }}>
+        <section className={styles.card} style={{ gridColumn: "1" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
             <div>
               <h3 className={styles.cardTitle} style={{ marginBottom: 6 }}>
@@ -573,7 +605,7 @@ export default function AdminPage() {
                       >
                         {`id: ${String(id)}`}
                       </div>
-                    </div>
+                    </div>  
 
                     <button
                       style={smallDangerBtnStyle}
@@ -600,7 +632,7 @@ export default function AdminPage() {
         </section>
 
                 {/* 유저 로그 */}
-        <section className={styles.card} style={{ gridColumn: "1 / -1" }}>
+        <section className={styles.card} style={{ gridColumn: "2", gridRow: "1 / span 6" }}>
           <h3 className={styles.cardTitle}>유저 로그</h3>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
