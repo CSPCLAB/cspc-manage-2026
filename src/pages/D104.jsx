@@ -170,21 +170,29 @@ export default function D104() {
     const roomRect = roomEl.getBoundingClientRect();
     const cellRect = targetEl.getBoundingClientRect();
 
-    // Position to the right of the clicked seat, inside the room frame coordinate system
-    let top = cellRect.top - roomRect.top;
-    let left = cellRect.right - roomRect.left + 12;
-
-    // Keep it within the room frame width if possible
+    // Place popover near the clicked seat (viewport coordinates)
     const POPOVER_W = 320;
     const POPOVER_PAD = 12;
-    const maxLeft = roomRect.width - POPOVER_W - POPOVER_PAD;
+    const EST_H = 320; // rough popover height for clamping
+
+    let top = cellRect.top;
+    let left = cellRect.right + 12;
+
+    // If no space on the right, show on the left of the seat
+    const maxLeft = window.innerWidth - POPOVER_W - POPOVER_PAD;
     if (left > maxLeft) {
-      // If no space on right, show on left
-      left = Math.max(POPOVER_PAD, cellRect.left - roomRect.left - POPOVER_W - 12);
+      left = Math.max(POPOVER_PAD, cellRect.left - POPOVER_W - 12);
     }
 
-    // Clamp vertically
-    const maxTop = Math.max(POPOVER_PAD, roomRect.height - 260);
+    // Seats below the podium (41+) should prefer bottom-aligned popover (show upward)
+    const maxTop = Math.max(POPOVER_PAD, window.innerHeight - EST_H - POPOVER_PAD);
+    const preferBottom = seatNumber >= 41;
+
+    if (preferBottom || top + EST_H + POPOVER_PAD > window.innerHeight) {
+      // Move up so the bottom of the popover stays in view (roughly aligns to the clicked seat's bottom)
+      top = cellRect.bottom - EST_H;
+    }
+
     top = Math.min(Math.max(POPOVER_PAD, top), maxTop);
 
     setPopover({ open: true, top, left });
@@ -593,7 +601,14 @@ export default function D104() {
       borderRadius: 12,
       padding: 12,
       flex: 1,
+      overflow: "visible",
+    },
+
+    roomScroll: {
+      position: "relative",
+      flex: 1,
       overflow: "auto",
+      minHeight: 0,
     },
 
     grid: {
@@ -848,7 +863,7 @@ export default function D104() {
     note: { fontSize: 11, color: C.subtext, marginTop: 10 },
 
     popover: {
-      position: "absolute",
+      position: "fixed",
       width: 320,
       borderRadius: 14,
       border: `1px solid ${C.borderMed}`,
@@ -1144,42 +1159,44 @@ export default function D104() {
                   </div>
                 </div>
               )}
-              <div style={styles.grid}>
-                {grid.flatMap((row, rIdx) =>
-                  row.map((cell, cIdx) => {
-                    const key = `${rIdx}-${cIdx}`;
+              <div style={styles.roomScroll}>
+                <div style={styles.grid}>
+                  {grid.flatMap((row, rIdx) =>
+                    row.map((cell, cIdx) => {
+                      const key = `${rIdx}-${cIdx}`;
 
-                    if (rIdx === PODIUM_ROW_INDEX) {
-                      if (cIdx === 0) {
-                        return (
-                          <div key={key} style={styles.cellPodium} title="전자교탁">
-                            전자교탁
-                          </div>
-                        );
+                      if (rIdx === PODIUM_ROW_INDEX) {
+                        if (cIdx === 0) {
+                          return (
+                            <div key={key} style={styles.cellPodium} title="전자교탁">
+                              전자교탁
+                            </div>
+                          );
+                        }
+                        return <div key={key} style={styles.cellEmpty} />;
                       }
-                      return <div key={key} style={styles.cellEmpty} />;
-                    }
 
-                    if (cell == null) return <div key={key} style={styles.cellEmpty} />;
+                      if (cell == null) return <div key={key} style={styles.cellEmpty} />;
 
-                    const active = cell === selectedSeatNumber;
-                    return (
-                      <div
-                        key={key}
-                        style={styles.cellPc(active, isSeatBrokenOrHasLogs(cell))}
-                        onClick={(e) => openSeatPopover(cell, e)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") openSeatPopover(cell, e);
-                        }}
-                        title={`PC ${cell}`}
-                      >
-                        {cell}
-                      </div>
-                    );
-                  })
-                )}
+                      const active = cell === selectedSeatNumber;
+                      return (
+                        <div
+                          key={key}
+                          style={styles.cellPc(active, isSeatBrokenOrHasLogs(cell))}
+                          onClick={(e) => openSeatPopover(cell, e)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") openSeatPopover(cell, e);
+                          }}
+                          title={`PC ${cell}`}
+                        >
+                          {cell}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           </div>
