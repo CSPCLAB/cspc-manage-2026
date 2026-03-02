@@ -71,7 +71,7 @@
 }
 
 /* 창 너비가 좁아지면(가로로 줄이면) 1열 스택 */
-@media (max-width: 1300px) {
+@media (max-width: 1250px) {
   .page {
     height: auto;       /* ✅ 잘림 방지: 페이지가 콘텐츠만큼 늘어남 */
     min-height: 100vh;
