@@ -413,7 +413,8 @@ export default function D105() {
 
   const styles = {
     page: {
-      minHeight: "100vh",
+      height: "100vh",
+      overflow: "hidden",
       background: C.bg,
       padding: 22,
       boxSizing: "border-box",
@@ -484,6 +485,8 @@ export default function D105() {
       gridTemplateColumns: "1fr 380px",
       gap: 16,
       alignItems: "start",
+      height: "calc(100vh - 120px)",
+      overflow: "hidden",
     },
     card: {
       background: C.card,
@@ -491,8 +494,16 @@ export default function D105() {
       borderRadius: 18,
       boxShadow: "0 4px 20px rgba(92,82,72,.07)",
       color: C.text,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
     },
-    leftWrap: { padding: 18 },
+    leftWrap: {
+      padding: 18,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+    },
     leftHeader: {
       display: "flex",
       justifyContent: "space-between",
@@ -508,6 +519,8 @@ export default function D105() {
       borderRadius: 14,
       padding: 16,
       paddingTop: 34,
+      flex: 1,
+      overflow: "auto",
     },
     roomFlex: {
       display: "grid",
@@ -586,7 +599,12 @@ export default function D105() {
       boxSizing: "border-box",
       transition: "background 0.15s, border-color 0.15s",
     }),
-    formWrap: { padding: 18 },
+    formWrap: {
+      padding: 18,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+    },
     infoCard: {
       borderRadius: 14,
       border: `1px solid ${C.border}`,
@@ -657,7 +675,7 @@ export default function D105() {
       transition: "background 0.15s",
     },
     bigBox: {
-      height: 280,
+      flex: 1,
       borderRadius: 14,
       background: C.bg,
       border: `1px solid ${C.border}`,
