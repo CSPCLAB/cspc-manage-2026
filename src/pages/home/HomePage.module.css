@@ -1,9 +1,14 @@
 ﻿.page {
+  width: 100vw;
   height: 100vh;
-  min-height: 0;
+
+  /* 기본: 전체 페이지 스크롤은 막고, 내부 패널에서 스크롤되게 */
+  overflow: hidden;
+
   padding: 16px;
   box-sizing: border-box;
   background: #f8fafc;
+
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -14,38 +19,61 @@
   min-height: 0;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+
+  grid-template-columns: 1fr minmax(320px, 26vw);
 }
 
 .left {
   min-height: 0;
   display: grid;
   gap: 16px;
-  grid-template-rows: 240px 500px;
+
+  /* ✅ 핵심: 아래(시간표)를 "최대 500"으로 두되, 세로가 부족하면 줄어들게 */
+  grid-template-rows: 1fr minmax(280px, 500px);
 }
 
 .leftTop {
+  min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 350px;
+  grid-template-columns: 1fr minmax(280px, 22vw);
   gap: 12px;
   align-items: stretch;
 }
 
+.leftTop > * {
+  min-height: 0;
+}
+
 .leftBottom {
   min-height: 0;
-  overflow: hidden;
+  overflow: hidden; /* 시간표 패널 내부에서 스크롤되게 */
+}
+
+.leftBottom > * {
+  height: 100%;
+  min-height: 0;
 }
 
 .right {
   min-height: 0;
   display: grid;
   gap: 16px;
-  grid-template-rows: 250px 250px 220px;
+
+  /* ✅ 세로가 부족하면 위 두 패널이 줄고(내부 스크롤), 마지막은 220 상한 */
+  grid-template-rows:
+    minmax(220px, 1fr)
+    minmax(220px, 1fr)
+    minmax(220px, 220px);
+
   font-size: 13px;
 }
 
+.right > * {
+  min-height: 0;
+}
+
 .notionBtn {
-  display: inline-flex; 
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
@@ -70,11 +98,17 @@
   gap: 8px;
 }
 
-/* 창 너비가 좁아지면(가로로 줄이면) 1열 스택 */
-@media (max-width: 1250px) {
+/* ✅ 창이 “전체화면이 아닌 정도로” 더 낮아지면: 페이지 세로 스크롤 허용 */
+@media (max-height: 700px) {
   .page {
-    height: auto;       /* ✅ 잘림 방지: 페이지가 콘텐츠만큼 늘어남 */
-    min-height: 100vh;
+    overflow: auto;
+  }
+}
+
+/* ✅ 가로가 너무 좁으면 1열(이건 너 원래 요구) */
+@media (max-width: 1200px) {
+  .page {
+    overflow: auto;
   }
 
   .grid {
@@ -91,6 +125,6 @@
 
   .right {
     grid-template-rows: auto;
-    overflow: visible;  /* ✅ 혹시 hidden 걸려있으면 풀어주기 */
+    overflow: visible;
   }
 }

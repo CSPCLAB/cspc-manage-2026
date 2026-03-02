@@ -53,25 +53,23 @@ function getPeriodWindow(baseDate, period) {
   let e = parseHHMMToDate(baseDate, period.end);
   if (!s) return null;
 
-  if (!e) e = new Date(s.getTime() + 120 * 60 * 1000); // end 없으면 2시간
-  if (e <= s) e = new Date(s.getTime() + 75 * 60 * 1000); // 이상치 보호
+  if (!e) e = new Date(s.getTime() + 120 * 60 * 1000);
+  if (e <= s) e = new Date(s.getTime() + 75 * 60 * 1000);
 
   return { startAt: s, endAt: e };
 }
 
-// 시간표의 한 칸을 고유하게 식별하는 ID를 만드는 함수
 function keyOf(dayIndex, periodKey) {
   return `${dayIndex}-${periodKey}`;
 }
 
-// 공백이나 대소문자 오타로 인한 에러 방지
 function normalizeName(s) {
   return (s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError }) {
   const [week, setWeek] = useState(1);
-  
+
   const [isEdit, setIsEdit] = useState(false);
   const [cells, setCells] = useState([]);
   const [originalCells, setOriginalCells] = useState([]);
@@ -89,140 +87,136 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
     return () => clearInterval(t);
   }, []);
 
-  
-function makeDummyWeek(weekNumber, pool) {
-  const items = [];
-  for (let d = 0; d < DAYS.length; d++) {
-    for (let p = 0; p < PERIODS.length; p++) {
-      const pick = pool?.length
-        ? pool[(d + p + weekNumber) % pool.length]
-        : null;
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+  const [scheduleError, setScheduleError] = useState(null);
 
-      items.push({
-        dayIndex: d,
-        periodKey: PERIODS[p].key,
-        admin: pick,
-        isSub: false,
-      });
-    }
-  }
-  return items;
-}
+  // ✅ (3번) week 바뀌면 다시 fetch 되게: 의존성에 week 추가
+  useEffect(() => {
+    if (!adminPool.length) return;
 
-const [loadingSchedule, setLoadingSchedule] = useState(false);
-const [scheduleError, setScheduleError] = useState(null);
+    let alive = true;
 
-useEffect(() => {
-  if (!adminPool.length) return;
+    const fetchSchedule = async () => {
+      setLoadingSchedule(true);
+      setScheduleError(null);
 
-  let alive = true;
+      try {
+        // ✅ 주차별 API (서버가 이 형태를 지원해야 함)
+        const res = await fetch(`/api/schedules/${week}`);
+        const payload = await res.json().catch(() => null);
 
-  const fetchTodaySchedule = async () => {
-    setLoadingSchedule(true);
-    setScheduleError(null);
-
-    try {
-      const res = await fetch("/api/schedules/today");
-      const payload = await res.json().catch(() => null);
-
-      if (!res.ok || !payload?.success) {
-        throw new Error(payload?.message || "시간표 불러오기 실패");
-      }
-
-      const weekNum = payload?.data?.week_number;
-      if (Number.isFinite(Number(weekNum)) && alive) {
-        setWeek(Number(weekNum));
-      }
-
-      const schedules = payload?.data?.schedules ?? [];
-      const nextCells = schedules
-        .map((s) => {
-          const slot = s?.Timetable_Slots;
-          const dayIndex = dayIndexFromKoreanDay(slot?.day_of_week);
-          const periodKey = Number(slot?.period_number);
-
-          if (dayIndex == null || !Number.isFinite(periodKey)) return null;
-
-          // admin: 서버 응답(Admin_Users) 우선 사용
-          const au = s?.Admin_Users;
-          const admin =
-            au && (s.assigned_admin_id != null)
-              ? {
-                  id: s.assigned_admin_id,
-                  name: au.name,
-                  color: au.color_hex,
-                }
-              : null;
-
-          return {
-            dayIndex,
-            periodKey,
-            admin,
-            isSub: Boolean(s?.is_substitute),
-          };
-        })
-        .filter(Boolean);
-
-      // 혹시 서버가 누락된 칸이 있을 수 있으니, 기본 7*6 그리드로 채우기
-      // (없는 칸은 admin=null로)
-      const filled = [];
-      const mapFromApi = new Map(nextCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c]));
-      for (let d = 0; d < DAYS.length; d++) {
-        for (let p = 0; p < PERIODS.length; p++) {
-          const k = keyOf(d, PERIODS[p].key);
-          filled.push(
-            mapFromApi.get(k) ?? {
-              dayIndex: d,
-              periodKey: PERIODS[p].key,
-              admin: null,
-              isSub: false,
-            }
-          );
+        if (!res.ok || !payload?.success) {
+          throw new Error(payload?.message || "시간표 불러오기 실패");
         }
+
+        // 서버가 week_number 내려주면 동기화(선택)
+        const weekNum = payload?.data?.week_number;
+        if (Number.isFinite(Number(weekNum)) && alive) {
+          setWeek(Number(weekNum));
+        }
+
+        const schedules = payload?.data?.schedules ?? [];
+
+        const nextCells = schedules
+          .map((s) => {
+            const slot = s?.Timetable_Slots;
+            const dayIndex = dayIndexFromKoreanDay(slot?.day_of_week);
+            const periodKey = Number(slot?.period_number);
+
+            if (dayIndex == null || !Number.isFinite(periodKey)) return null;
+
+            // ✅ (2번) assigned_admin_id 없으면 default_admin_id로 채우기
+            const assignedId = s?.assigned_admin_id != null ? Number(s.assigned_admin_id) : null;
+            const defaultId = slot?.default_admin_id != null ? Number(slot.default_admin_id) : null;
+            const finalId = assignedId ?? defaultId;
+
+            // 서버가 Admin_Users를 내려주면 우선 사용
+            const au = s?.Admin_Users;
+
+            // 아니면 adminPool에서 찾아서 채움
+            const fromPool = finalId != null ? adminPool.find((a) => Number(a.id) === finalId) : null;
+
+            const admin =
+              finalId == null
+                ? null
+                : au
+                ? { id: finalId, name: au.name, color: au.color_hex }
+                : fromPool
+                ? {
+                    id: fromPool.id,
+                    name: fromPool.name,
+                    color: fromPool.color_hex ?? fromPool.color,
+                  }
+                : null;
+
+            return {
+              dayIndex,
+              periodKey,
+              admin,
+              isSub: Boolean(s?.is_substitute),
+            };
+          })
+          .filter(Boolean);
+
+        // 7*6 고정 그리드로 채우기
+        const filled = [];
+        const mapFromApi = new Map(nextCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c]));
+        for (let d = 0; d < DAYS.length; d++) {
+          for (let p = 0; p < PERIODS.length; p++) {
+            const k = keyOf(d, PERIODS[p].key);
+            filled.push(
+              mapFromApi.get(k) ?? {
+                dayIndex: d,
+                periodKey: PERIODS[p].key,
+                admin: null,
+                isSub: false,
+              }
+            );
+          }
+        }
+
+        if (!alive) return;
+
+        setCells(filled);
+        setOriginalCells(filled);
+        setIsEdit(false);
+        setDraftInputs({});
+        setSuggestOpenFor(null);
+        setHighlightIndex(0);
+      } catch (e) {
+        if (!alive) return;
+        setScheduleError(e?.message || "시간표 불러오기 오류");
+      } finally {
+        if (!alive) return;
+        setLoadingSchedule(false);
       }
+    };
 
-      if (!alive) return;
+    fetchSchedule();
 
-      setCells(filled);
-      setOriginalCells(filled);
-      setIsEdit(false);
-      setDraftInputs({});
-      setSuggestOpenFor(null);
-      setHighlightIndex(0);
-    } catch (e) {
-      if (!alive) return;
-      setScheduleError(e?.message || "시간표 불러오기 오류");
-    } finally {
-      if (!alive) return;
-      setLoadingSchedule(false);
-    }
-  };
+    return () => {
+      alive = false;
+    };
+  }, [adminPool, week]);
 
-  fetchTodaySchedule();
+  const { exactMap, adminById, candidates } = useMemo(() => {
+    const byId = new Map();
+    const map = new Map();
 
-  return () => {
-    alive = false;
-  };
-}, [adminPool]);
+    adminPool.forEach((a) => {
+      byId.set(a.id, a);
 
-const { exactMap, adminById, candidates } = useMemo(() => {
-  const byId = new Map();
-  const map = new Map();
+      const key = normalizeName(a.name);
+      if (key) map.set(key, a.id);
+    });
 
-  adminPool.forEach((a) => {
-    byId.set(a.id, a);
+    const list = adminPool.map((a) => ({
+      id: a.id,
+      name: a.name,
+    }));
 
-    const key = normalizeName(a.name);
-    if (key) map.set(key, a.id); // 동명이인 없음 전제
-  });
-
-  const list = adminPool.map((a) => ({
-    id: a.id,
-    name: a.name,
-  }));
-
-  return { exactMap: map, adminById: byId, candidates: list };
-}, [adminPool]);
+    return { exactMap: map, adminById: byId, candidates: list };
+  }, [adminPool]);
 
   const map = useMemo(() => {
     const m = new Map();
@@ -477,7 +471,7 @@ const { exactMap, adminById, candidates } = useMemo(() => {
       <div className={styles.grid} ref={gridRef}>
         <div className={styles.corner} />
 
-        {DAYS.map((d, idx) => (
+        {DAYS.map((d) => (
           <div key={d} className={styles.dayHeader}>
             {d}
           </div>
@@ -624,7 +618,6 @@ const { exactMap, adminById, candidates } = useMemo(() => {
                                 {s.name}
                               </button>
                             ))}
-
                           </div>
                         )}
                       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./HomePage.module.css";
 import TopBar from "../../components/layout/TopBar";
@@ -10,9 +10,48 @@ import AdminAuthPanel from "./components/AdminAuthPanel";
 import LateRankPanel from "./components/LateRankPanel";
 
 export default function HomePage() {
-  const NOTION_URL = import.meta.env.VITE_NOTION_URL || "https://www.notion.so/cspclab/CSPC-LAB-40d34473aee644978b4bef89c6db55c2";
-  const navigate = useNavigate();
+  const NOTION_URL =
+    import.meta.env.VITE_NOTION_URL ||
+    "https://www.notion.so/cspclab/CSPC-LAB-40d34473aee644978b4bef89c6db55c2";
 
+  const navigate = useNavigate();
+  const outerRef = useRef(null);
+
+  // ✅ 이 값이 핵심: 지금 화면에서 여백이 많이 남으니 기준 폭을 조금 키움
+  const BASE_W = 1700;
+
+  // ✅ 너무 좁아지면 1열 스택으로 전환할 기준
+  const STACK_BREAKPOINT = 1250;
+
+  useEffect(() => {
+    const applyScale = () => {
+      const vw = window.innerWidth;
+      const shouldStack = vw <= STACK_BREAKPOINT;
+
+      if (shouldStack) {
+        outerRef.current?.style.setProperty("--use-scale", "0");
+        return;
+      }
+
+      const pad = 16 * 2;                // pageOuter padding 기준
+      const availW = vw - pad;
+
+      const s = Math.min(availW / BASE_W, 1);  // ✅ 가로 기준 스케일
+
+      const el = outerRef.current;
+      if (!el) return;
+
+      el.style.setProperty("--use-scale", "1");
+      el.style.setProperty("--app-scale", String(s));
+      el.style.setProperty("--app-base-w", `${BASE_W}px`);
+    };
+
+    applyScale();
+    window.addEventListener("resize", applyScale);
+    return () => window.removeEventListener("resize", applyScale);
+  }, []);
+
+  // ---- (여기 아래는 너 기존 코드 그대로) ----
   const [adminPool, setAdminPool] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [adminError, setAdminError] = useState(null);
@@ -89,54 +128,51 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className={styles.page}>
-      <TopBar
-        right={
-          <div className={styles.topRightButtons}>
-            <button
-              className={styles.notionBtn}
-              onClick={() => navigate("./admin")}
-            >
-              관리자 페이지
-            </button>
-            <button
-              className={styles.notionBtn}
-              onClick={() => navigate("./d104")}
-            >
-              실습실 관리
-            </button>
-            <button
-              className={styles.notionBtn}
-              onClick={() => window.open(NOTION_URL, "_blank", "noopener,noreferrer")}
-            >
-              노션 바로가기
-            </button>
-          </div>
-        }
-      />
+    <div ref={outerRef} className={styles.pageOuter}>
+      <div className={styles.page}>
+        <TopBar
+          right={
+            <div className={styles.topRightButtons}>
+              <button className={styles.notionBtn} onClick={() => navigate("./admin")}>
+                관리자 페이지
+              </button>
+              <button className={styles.notionBtn} onClick={() => navigate("./d104")}>
+                실습실 관리
+              </button>
+              <button
+                className={styles.notionBtn}
+                onClick={() => window.open(NOTION_URL, "_blank", "noopener,noreferrer")}
+              >
+                노션 바로가기
+              </button>
+            </div>
+          }
+        />
 
-      <div className={styles.grid}>
-        <div className={styles.left}>
-          <div className={styles.leftTop}>
-            <NoticePanel />
-            <AdminAuthPanel />
+        <div className={styles.grid}>
+          <div className={styles.left}>
+            <div className={styles.leftTop}>
+              <NoticePanel />
+              <AdminAuthPanel />
+            </div>
+            <div className={styles.leftBottom}>
+              <WeekSchedulePanel
+                adminPool={adminPool}
+                loadingAdmins={loadingAdmins}
+                adminError={adminError}
+              />
+            </div>
           </div>
-          <div className={styles.leftBottom}>
-            <WeekSchedulePanel 
-              adminPool={adminPool} 
-              loadingAdmins={loadingAdmins} 
-              adminError={adminError}/>
-          </div>
-        </div>
 
-        <div className={styles.right}>
-          <MeetingPanel />
-          <RequestsPanel />
-          <LateRankPanel 
-            rankingList={rankingList}
-            loadingRanking={loadingRanking}
-            rankingError={rankingError} 
-          />
+          <div className={styles.right}>
+            <MeetingPanel />
+            <RequestsPanel />
+            <LateRankPanel
+              rankingList={rankingList}
+              loadingRanking={loadingRanking}
+              rankingError={rankingError}
+            />
+          </div>
         </div>
       </div>
     </div>
