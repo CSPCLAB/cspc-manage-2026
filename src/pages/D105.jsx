@@ -578,8 +578,10 @@ export default function D105() {
       borderRadius: 14,
       padding: 16,
       paddingTop: 34,
+      paddingBottom: 28, // 하단이 잘려 보이지 않게 여유(둥근 모서리 유지)
       flex: 1,
       overflow: "auto",
+      boxSizing: "border-box",
     },
     roomFlex: {
       display: "grid",
