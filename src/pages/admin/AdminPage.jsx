@@ -424,7 +424,6 @@ export default function AdminPage() {
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>학기 시간표 리셋</h3>
           <p className={styles.cardDesc}>
-            <b>POST</b> /api/admin/schedules/init
             <br />
             시간표를 초기화하며, 설정에 따라 Admin_Users의 late_count도 0으로 초기화됩니다.
           </p>
@@ -438,7 +437,6 @@ export default function AdminPage() {
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>개강일 입력 (주차 생성)</h3>
           <p className={styles.cardDesc}>
-            <b>POST</b> /api/admin/setup-weeks
           </p>                   
 
           <form onSubmit={setupWeeks} className={styles.form}>
@@ -487,7 +485,6 @@ export default function AdminPage() {
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>학회원 추가</h3>
           <p className={styles.cardDesc}>
-            <b>POST</b> /api/admin/users (name)
           </p>
 
           <form onSubmit={createUser} className={styles.form}>
@@ -512,7 +509,6 @@ export default function AdminPage() {
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>학회원 삭제</h3>
           <p className={styles.cardDesc}>
-            <b>DELETE</b> /api/admin/users/:id
           </p>
 
           <form onSubmit={removeUser} className={styles.form}>
@@ -541,7 +537,6 @@ export default function AdminPage() {
                 학회원 목록
               </h3>
               <p className={styles.cardDesc} style={{ marginBottom: 0 }}>
-                <b>GET</b> /api/admin/users
               </p>
             </div>
 
@@ -580,9 +575,9 @@ export default function AdminPage() {
                             {name}
                           </div>
                           <div
-                            style={{
+                            style={{  
                               marginTop: 4,
-                              fontSize: 12,
+                              fontSize: 20,
                               color: "rgba(17,24,39,0.6)",
                               wordBreak: "break-word",
                             }}
@@ -631,6 +626,8 @@ export default function AdminPage() {
                 background: "#fff",
                 fontWeight: 800,
                 minWidth: 240,
+                flex: "1 1 240px",
+                maxWidth: 420,
               }}
             >
               <option value="">학회원 선택</option>
@@ -656,6 +653,8 @@ export default function AdminPage() {
                 border: "1px solid rgba(0,0,0,0.12)",
                 background: "#fff",
                 fontWeight: 800,
+                minWidth: 200,
+                flex: "0 0 auto",
               }}
             />
 
@@ -690,7 +689,7 @@ export default function AdminPage() {
             value={userLogs}
             readOnly
             placeholder="학회원을 선택하면 로그가 자동으로 표시됩니다. 날짜를 선택하면 필터링됩니다."
-            style={{ height: 420, maxHeight: 420, overflow: "auto", resize: "none" }}
+            style={{ width: "100%", height: 420, maxHeight: 420, overflow: "auto", resize: "none" }}
           />
 
           <details style={{ marginTop: 12 }}>
