@@ -1,29 +1,44 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-/**
- * 실습실 PC 배치도 (전자교탁 왼쪽) + 클릭하면 우측 패널에 PC 정보/요청 표시
- * - 번호는 "위에서부터 1,2,3..." 순으로 자동 부여
- * - DB 스키마 느낌:
- *   - Lab_Computers: manufacturer/model/serial_number/is_broken 등
- *   - Repair_Logs: 컴퓨터별 요청 로그 (요청 내용)
- *
- * 🎨 테마: 따뜻한 뉴트럴 (베이지/슬레이트)
- */
-
-// ─── 컬러 팔레트 ──────────────────────────────────────────────────
-// 배경     : #f5f0eb  (따뜻한 오프화이트)
-// 카드     : #fdfaf7  (크림화이트)
-// 테두리   : #e2d9cf  (따뜻한 베이지 보더)
-// 텍스트   : #2d2822  (다크 웜브라운)
-// 서브텍스트: #7a6e64  (미디엄 웜브라운)
-// 액센트   : #5c5248  (슬레이트 브라운 - 버튼/활성)
-// 선택(PC) : #3d342c  (딥 워머 슬레이트)
-// 정상(초록): #c8e6c4 / #2a5c30
-// 고장(빨강): #f0c4c4 / #7c2424
-// ─────────────────────────────────────────────────────────────────
-
 export default function D104() {
+  // --- fetch helper ---
+  const fetchApi = async (path, options = {}) => {
+    const base = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+    const url = base ? `${base}${path}` : path;
+    let opts = { ...options };
+    if (!opts.headers) opts.headers = {};
+    if (
+      (opts.method === "POST" ||
+        opts.method === "PATCH" ||
+        opts.method === "PUT") &&
+      opts.body &&
+      typeof opts.body === "object"
+    ) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(opts.body);
+    }
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+      let msg = `API 오류: ${res.status} ${res.statusText}`;
+      try {
+        const data = await res.json();
+        if (data?.message) msg += ` - ${data.message}`;
+      } catch {}
+      throw new Error(msg);
+    }
+    // Try to parse JSON, else return null
+    try {
+      const json = await res.json();
+      // Common API shape: { success: true/false, data: ..., message: "..." }
+      if (json && typeof json === "object" && "data" in json && "success" in json) {
+        return json.data;
+      }
+      return json;
+    } catch {
+      return null;
+    }
+  };
   const COLS = 10;
   const PODIUM_ROW_INDEX = 5;
 
@@ -59,46 +74,146 @@ export default function D104() {
 
   const LOCATION = "D104";
 
-  const [computers, setComputers] = useState(() =>
-    allSeats.map((n) => ({
-      id: n,
-      location: LOCATION,
-      computer_number: n,
-      is_broken: false,
-      manufacturer: "",
-      model: "",
-      serial_number: "",
-    }))
-  );
+  const [computers, setComputers] = useState([]);
 
+  // --- Fetch computers and repair logs on mount ---
   useEffect(() => {
-    setComputers((prev) => {
-      const exist = new Set(prev.map((c) => c.id));
-      const add = allSeats
-        .filter((n) => !exist.has(n))
-        .map((n) => ({
-          id: n,
-          location: LOCATION,
-          computer_number: n,
-          is_broken: false,
-          manufacturer: "",
-          model: "",
-          serial_number: "",
-        }));
-      return add.length ? [...prev, ...add].sort((a, b) => a.id - b.id) : prev;
-    });
-  }, [allSeats]);
+    let ignore = false;
+    (async () => {
+      try {
+        const data = await fetchApi(`/api/lab?location=${LOCATION}`);
+        // robust shape handling
+        let compArr = [];
+        let reportsArr = [];
+        if (Array.isArray(data)) {
+          compArr = data;
+          reportsArr = [];
+        } else if (data?.computers) {
+          compArr = data.computers;
+          reportsArr = data.reports ?? [];
+        } else if (data?.data?.computers) {
+          compArr = data.data.computers;
+          reportsArr = data.data.reports ?? [];
+        }
+        // Map by seat number (computer_number). DB `id` is global and must NOT be assumed to equal seat number.
+        const compBySeat = {};
+        for (const c of compArr) {
+          const seat = c.computer_number;
+          if (typeof seat === "number") compBySeat[seat] = c;
+        }
 
-  const [selectedComputerId, setSelectedComputerId] = useState(allSeats[0] ?? 1);
+        // Ensure all seats are present in UI (placeholders for missing ones)
+        const allComps = allSeats.map((n) =>
+          compBySeat[n]
+            ? { ...compBySeat[n], location: LOCATION, computer_number: n }
+            : {
+                // Placeholder: no DB id yet
+                id: null,
+                location: LOCATION,
+                computer_number: n,
+                is_broken: false,
+                manufacturer: "",
+                model: "",
+                serial_number: "",
+              }
+        );
+        if (ignore) return;
+        setComputers(allComps);
+        setRepairLogs(
+          Array.isArray(reportsArr)
+            ? reportsArr.map((r) => ({
+                ...r,
+                createdAt: r.createdAt || r.created_at,
+              }))
+            : []
+        );
+      } catch (e) {
+        // Optionally: error UI
+        if (ignore) return;
+        setComputers(
+          allSeats.map((n) => ({
+            id: null,
+            location: LOCATION,
+            computer_number: n,
+            is_broken: false,
+            manufacturer: "",
+            model: "",
+            serial_number: "",
+          }))
+        );
+        setRepairLogs([]);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line
+  }, [allSeats, LOCATION]);
+
+
+  const [selectedSeatNumber, setSelectedSeatNumber] = useState(allSeats[0] ?? 1);
+
+  // --- seat popover (말풍선) ---
+  const roomRef = useRef(null);
+  const popoverRef = useRef(null);
+  const [popover, setPopover] = useState({ open: false, top: 0, left: 0 });
+
+  const openSeatPopover = (seatNumber, evt) => {
+    setSelectedSeatNumber(seatNumber);
+    const roomEl = roomRef.current;
+    const targetEl = evt?.currentTarget;
+    if (!roomEl || !targetEl) {
+      setPopover((p) => ({ ...p, open: true }));
+      return;
+    }
+
+    const roomRect = roomEl.getBoundingClientRect();
+    const cellRect = targetEl.getBoundingClientRect();
+
+    // Position to the right of the clicked seat, inside the room frame coordinate system
+    let top = cellRect.top - roomRect.top;
+    let left = cellRect.right - roomRect.left + 12;
+
+    // Keep it within the room frame width if possible
+    const POPOVER_W = 340;
+    const POPOVER_PAD = 12;
+    const maxLeft = roomRect.width - POPOVER_W - POPOVER_PAD;
+    if (left > maxLeft) {
+      // If no space on right, show on left
+      left = Math.max(POPOVER_PAD, cellRect.left - roomRect.left - POPOVER_W - 12);
+    }
+
+    // Clamp vertically
+    const maxTop = Math.max(POPOVER_PAD, roomRect.height - 260);
+    top = Math.min(Math.max(POPOVER_PAD, top), maxTop);
+
+    setPopover({ open: true, top, left });
+  };
+
+  const closeSeatPopover = () => setPopover((p) => ({ ...p, open: false }));
+
+  // Close when clicking outside
+  useEffect(() => {
+    if (!popover.open) return;
+    const onDown = (e) => {
+      const pop = popoverRef.current;
+      if (pop && pop.contains(e.target)) return;
+      closeSeatPopover();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [popover.open]);
 
   const selectedComputer = useMemo(
-    () => computers.find((c) => c.id === selectedComputerId) ?? computers[0],
-    [computers, selectedComputerId]
+    () => computers.find((c) => c.computer_number === selectedSeatNumber) ?? computers[0],
+    [computers, selectedSeatNumber]
   );
 
   const updateSelectedComputer = (patch) => {
     setComputers((prev) =>
-      prev.map((c) => (c.id === selectedComputerId ? { ...c, ...patch } : c))
+      prev.map((c) =>
+        c.computer_number === selectedSeatNumber ? { ...c, ...patch } : c
+      )
     );
   };
 
@@ -112,10 +227,17 @@ export default function D104() {
     return map;
   }, [repairLogs]);
 
-  const isBroken = (computerId) =>
-    !!computers.find((c) => c.id === computerId)?.is_broken;
+  // --- Broken/hasOpenLogs logic by DB id (not seat number) ---
+  const hasOpenLogs = (dbComputerId) => !!hasOpenLogMap[dbComputerId];
 
-  const hasOpenLogs = (computerId) => !!hasOpenLogMap[computerId];
+  const getComputerBySeat = (seatNumber) =>
+    computers.find((c) => c.computer_number === seatNumber) || null;
+
+  const isSeatBrokenOrHasLogs = (seatNumber) => {
+    const c = getComputerBySeat(seatNumber);
+    if (!c) return false;
+    return !!c.is_broken || hasOpenLogs(c.id);
+  };
 
   const [isEditingComputer, setIsEditingComputer] = useState(false);
   const [computerDraft, setComputerDraft] = useState({
@@ -124,6 +246,66 @@ export default function D104() {
     serial_number: "",
     is_broken: false,
   });
+
+  // --- Fetch single computer + its reports when selection changes ---
+  // --- Fetch single computer + its reports when selection changes ---
+  useEffect(() => {
+    let ignore = false;
+    const dbId = selectedComputer?.id;
+    if (!dbId) return;
+    (async () => {
+      try {
+        const data = await fetchApi(`/api/lab/${dbId}`);
+        // robust shape handling
+        let comp = null;
+        let reportsArr = [];
+        if (data?.computer) {
+          comp = { ...data.computer, id: dbId };
+          reportsArr = data.reports ?? [];
+        } else if (data?.data?.computer) {
+          comp = { ...data.data.computer, id: dbId };
+          reportsArr = data.data.reports ?? [];
+        } else if (typeof data === "object" && data?.id != null) {
+          comp = { ...data, id: dbId };
+          reportsArr = data.reports ?? [];
+        }
+        // update computers by merging
+        if (comp) {
+          if (ignore) return;
+          setComputers((prev) => {
+            const found = prev.some((c) => c.id === dbId);
+            if (!found) return prev;
+            return prev.map((c) =>
+              c.id === dbId
+                ? { ...c, ...comp }
+                : c
+            );
+          });
+        }
+        if (Array.isArray(reportsArr)) {
+          if (ignore) return;
+          // Remove old logs for this PC, add new ones
+          setRepairLogs((prev) => {
+            // Remove old logs for this computer
+            const rest = prev.filter((r) => r.computer_id !== dbId);
+            return [
+              ...reportsArr.map((r) => ({
+                ...r,
+                createdAt: r.createdAt || r.created_at,
+              })),
+              ...rest,
+            ];
+          });
+        }
+      } catch (e) {
+        // ignore error
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line
+  }, [selectedComputer]);
 
   useEffect(() => {
     if (!selectedComputer) return;
@@ -134,7 +316,7 @@ export default function D104() {
       serial_number: selectedComputer.serial_number ?? "",
       is_broken: !!selectedComputer.is_broken,
     });
-  }, [selectedComputerId, selectedComputer, isEditingComputer]);
+  }, [selectedSeatNumber, selectedComputer, isEditingComputer]);
 
   const startEditComputer = () => {
     if (!selectedComputer) return;
@@ -161,56 +343,95 @@ export default function D104() {
     setIsEditingComputer(false);
   };
 
-  const saveComputerDraft = () => {
-    updateSelectedComputer({
-      manufacturer: computerDraft.manufacturer,
-      model: computerDraft.model,
-      serial_number: computerDraft.serial_number,
-      is_broken: !!computerDraft.is_broken,
-    });
-    setIsEditingComputer(false);
+  const saveComputerDraft = async () => {
+    try {
+      const patchBody = {
+        manufacturer: computerDraft.manufacturer,
+        model: computerDraft.model,
+        serial_number: computerDraft.serial_number,
+        is_broken: !!computerDraft.is_broken,
+      };
+      const dbId = selectedComputer?.id;
+      if (!dbId) {
+        alert("이 PC는 서버에 등록된 ID가 없어서 저장이 안 됩니다. (DB에 PC 레코드가 있어야 PATCH 가능)\n\n해결: 서버에 해당 PC(좌석 번호)를 먼저 등록하거나, 등록 API를 추가해야 합니다.");
+        return;
+      }
+      await fetchApi(`/api/lab/${dbId}`, {
+        method: "PATCH",
+        body: patchBody,
+      });
+      updateSelectedComputer(patchBody);
+      setIsEditingComputer(false);
+    } catch (e) {
+      console.error("PC 저장 실패:", e);
+      alert(e?.message || "PC 저장에 실패했습니다. 콘솔을 확인해 주세요.");
+    }
   };
 
   const [category, setCategory] = useState("선택");
   const [requestText, setRequestText] = useState("");
 
   const filtered = useMemo(
-    () => repairLogs.filter((r) => r.computer_id === selectedComputerId),
-    [repairLogs, selectedComputerId]
+    () => {
+      const dbId = selectedComputer?.id;
+      if (!dbId) return [];
+      return repairLogs.filter((r) => r.computer_id === dbId);
+    },
+    [repairLogs, selectedComputer]
   );
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     if (e?.preventDefault) e.preventDefault();
 
     if (category === "선택") {
-      alert("카테고리 선택부터 하셈");
+      alert("카테고리를 선택해 주세요.");
       return;
     }
     if (!requestText.trim()) {
-      alert("요청 내용 비우면 안 됨");
+      alert("요청 내용을 입력해 주세요.");
       return;
     }
 
-    setRepairLogs((prev) => [
-      {
-        id: Date.now(),
-        computer_id: selectedComputerId,
+    try {
+      const body = {
         category,
         title: requestText.trim(),
-        createdAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
-
-    // 요청이 등록되면 자동으로 '고장' 상태로 전환 (배치도 빨강)
-    updateSelectedComputer({ is_broken: true });
-    // 편집 모드라면 draft도 즉시 반영
-    if (isEditingComputer) {
-      setComputerDraft((d) => ({ ...d, is_broken: true }));
+      };
+      const dbId = selectedComputer?.id;
+      if (!dbId) throw new Error("선택된 PC의 서버 ID가 없습니다.");
+      const res = await fetchApi(`/api/lab/${dbId}/reports`, {
+        method: "POST",
+        body,
+      });
+      // Accept returned report or fallback
+      let newReport = res;
+      if (!newReport || typeof newReport !== "object" || newReport.id == null) {
+        newReport = {
+          id: Date.now(),
+          computer_id: dbId,
+          category,
+          title: requestText.trim(),
+          createdAt: new Date().toISOString(),
+        };
+      } else {
+        newReport = {
+          ...newReport,
+          computer_id: dbId,
+          createdAt: newReport.createdAt || newReport.created_at || new Date().toISOString(),
+        };
+      }
+      setRepairLogs((prev) => [newReport, ...prev]);
+      // 요청이 등록되면 자동으로 '고장' 상태로 전환 (배치도 빨강)
+      updateSelectedComputer({ is_broken: true });
+      if (isEditingComputer) {
+        setComputerDraft((d) => ({ ...d, is_broken: true }));
+      }
+      setCategory("선택");
+      setRequestText("");
+    } catch (e) {
+      console.error("요청 등록 실패:", e);
+      alert(e?.message || "요청 등록에 실패했습니다. 콘솔을 확인해 주세요.");
     }
-
-    setCategory("선택");
-    setRequestText("");
   };
 
   // ====== 🎨 따뜻한 뉴트럴 테마 스타일 ======
@@ -352,6 +573,7 @@ export default function D104() {
     },
 
     roomFrame: {
+      position: "relative",
       background: C.bg,
       border: `1px solid ${C.border}`,
       borderRadius: 14,
@@ -602,11 +824,73 @@ export default function D104() {
     timeText: { fontSize: 11, color: C.subtext },
 
     note: { fontSize: 11, color: C.subtext, marginTop: 10 },
+
+    popover: {
+      position: "absolute",
+      width: 340,
+      borderRadius: 14,
+      border: `1px solid ${C.borderMed}`,
+      background: C.card,
+      boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+      zIndex: 30,
+      overflow: "hidden",
+    },
+
+    popoverHeader: {
+      padding: "10px 12px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderBottom: `1px solid ${C.border}`,
+      background: C.bg,
+    },
+
+    popoverTitle: {
+      margin: 0,
+      fontSize: 13,
+      fontWeight: 800,
+      color: C.text,
+    },
+
+    popoverBody: {
+      padding: 12,
+    },
+
+    popoverClose: {
+      padding: "4px 10px",
+      borderRadius: 999,
+      border: `1px solid ${C.border}`,
+      background: C.card,
+      color: C.subtext,
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: "pointer",
+    },
   };
 
 
   const categoryTone = (c) =>
     c === "시설" ? "green" : c === "비품" ? "green" : "gray";
+
+  const onDeleteReport = async (reportId, computerId) => {
+    try {
+      await fetchApi(`/api/lab/reports/${reportId}`, { method: "DELETE" });
+      setRepairLogs((prev) => {
+        const next = prev.filter((x) => x.id !== reportId);
+        // If this computer has no more logs, set is_broken: false
+        if (!next.some((r) => r.computer_id === computerId)) {
+          setComputers((prevComps) =>
+            prevComps.map((c) =>
+              c.id === computerId ? { ...c, is_broken: false } : c
+            )
+          );
+        }
+        return next;
+      });
+    } catch (e) {
+      // Optionally: error UI
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -634,7 +918,210 @@ export default function D104() {
               <div style={styles.leftHeaderHint}>PC 클릭 → 오른쪽에서 작성</div>
             </div>
 
-            <div style={styles.roomFrame}>
+            <div style={styles.roomFrame} ref={roomRef}>
+              {popover.open && (
+                <div
+                  ref={popoverRef}
+                  style={{
+                    ...styles.popover,
+                    top: popover.top,
+                    left: popover.left,
+                  }}
+                  role="dialog"
+                  aria-label="컴퓨터 정보"
+                >
+                  <div style={styles.popoverHeader}>
+                    <p style={styles.popoverTitle}>
+                      PC {selectedComputer?.computer_number ?? selectedSeatNumber} 정보
+                    </p>
+                    <button type="button" onClick={closeSeatPopover} style={styles.popoverClose}>
+                      닫기
+                    </button>
+                  </div>
+
+                  <div style={styles.popoverBody}>
+                    <div style={styles.row2}>
+                      <div style={styles.field}>
+                        <div style={styles.label}>위치</div>
+                        <input value={selectedComputer?.location ?? ""} readOnly style={styles.input} />
+                      </div>
+                      <div style={styles.field}>
+                        <div style={styles.label}>컴퓨터 번호</div>
+                        <input
+                          value={String(selectedComputer?.computer_number ?? selectedSeatNumber)}
+                          readOnly
+                          style={styles.input}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={styles.row2}>
+                      <div style={styles.field}>
+                        <div style={styles.label}>제조사(제품명)</div>
+                        <input
+                          value={computerDraft.manufacturer}
+                          onChange={(e) =>
+                            setComputerDraft((d) => ({
+                              ...d,
+                              manufacturer: e.target.value,
+                            }))
+                          }
+                          style={styles.input}
+                          disabled={!isEditingComputer}
+                          placeholder="예) Dell / LG / Samsung"
+                        />
+                      </div>
+                      <div style={styles.field}>
+                        <div style={styles.label}>모델(머신타입)</div>
+                        <input
+                          value={computerDraft.model}
+                          onChange={(e) =>
+                            setComputerDraft((d) => ({
+                              ...d,
+                              model: e.target.value,
+                            }))
+                          }
+                          style={styles.input}
+                          disabled={!isEditingComputer}
+                          placeholder="예) OptiPlex 7090"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={styles.field}>
+                      <div style={styles.label}>시리얼 넘버</div>
+                      <input
+                        value={computerDraft.serial_number}
+                        onChange={(e) =>
+                          setComputerDraft((d) => ({
+                            ...d,
+                            serial_number: e.target.value,
+                          }))
+                        }
+                        style={styles.input}
+                        disabled={!isEditingComputer}
+                        placeholder="예) SN1234..."
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                      {!isEditingComputer ? (
+                        <button type="button" onClick={startEditComputer} style={styles.smallBtn}>
+                          수정
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={saveComputerDraft}
+                            style={{
+                              ...styles.smallBtn,
+                              background: C.accent,
+                              color: "#fdfaf7",
+                              border: `1px solid ${C.accent}`,
+                            }}
+                          >
+                            저장
+                          </button>
+                          <button type="button" onClick={cancelEditComputer} style={styles.smallBtn}>
+                            취소
+                          </button>
+                        </>
+                      )}
+
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={() => isEditingComputer && setComputerDraft((d) => ({ ...d, is_broken: false }))}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            border: computerDraft.is_broken ? `1px solid ${C.border}` : `1px solid ${C.accent}`,
+                            background: computerDraft.is_broken ? C.bg : C.accent,
+                            color: computerDraft.is_broken ? C.subtext : "#fdfaf7",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            fontSize: 12,
+                          }}
+                          aria-pressed={!computerDraft.is_broken}
+                          disabled={!isEditingComputer}
+                        >
+                          정상
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => isEditingComputer && setComputerDraft((d) => ({ ...d, is_broken: true }))}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            border: computerDraft.is_broken ? `1px solid ${C.pcBrokenText}` : `1px solid ${C.border}`,
+                            background: computerDraft.is_broken ? C.pcBrokenText : C.bg,
+                            color: computerDraft.is_broken ? "#fdfaf7" : C.subtext,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            fontSize: 12,
+                          }}
+                          aria-pressed={!!computerDraft.is_broken}
+                          disabled={!isEditingComputer}
+                        >
+                          고장
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      marginBottom: 8,
+                    }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, margin: 0, color: C.text }}>
+                        요청 목록
+                      </div>
+                      <div style={{ fontSize: 11, color: C.subtext }}>
+                        ({filtered.length})
+                      </div>
+                    </div>
+
+                    <div style={{
+                      maxHeight: 220,
+                      overflow: "auto",
+                      borderRadius: 12,
+                      background: C.bg,
+                      border: `1px solid ${C.border}`,
+                      padding: 10,
+                      boxSizing: "border-box",
+                    }}>
+                      {filtered.length === 0 ? (
+                        <div style={{ fontSize: 13, padding: 8, color: C.subtext }}>아직 요청 없음</div>
+                      ) : (
+                        filtered.map((r) => (
+                          <div key={r.id} style={{ ...styles.item, marginBottom: 8 }}>
+                            <div style={styles.itemTop}>
+                              <div style={styles.badgeRow}>
+                                <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
+                              </div>
+                              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                <span style={styles.timeText}>{new Date(r.createdAt).toLocaleString()}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteReport(r.id, selectedComputer?.id)}
+                                  style={styles.smallBtn}
+                                  title="이 요청 삭제"
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </div>
+                            <div style={styles.itemTitle}>{r.title}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
               <div style={styles.grid}>
                 {grid.flatMap((row, rIdx) =>
                   row.map((cell, cIdx) => {
@@ -653,16 +1140,16 @@ export default function D104() {
 
                     if (cell == null) return <div key={key} style={styles.cellEmpty} />;
 
-                    const active = cell === selectedComputerId;
+                    const active = cell === selectedSeatNumber;
                     return (
                       <div
                         key={key}
-                        style={styles.cellPc(active, hasOpenLogs(cell) || isBroken(cell))}
-                        onClick={() => setSelectedComputerId(cell)}
+                        style={styles.cellPc(active, isSeatBrokenOrHasLogs(cell))}
+                        onClick={(e) => openSeatPopover(cell, e)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") setSelectedComputerId(cell);
+                          if (e.key === "Enter" || e.key === " ") openSeatPopover(cell, e);
                         }}
                         title={`PC ${cell}`}
                       >
@@ -671,231 +1158,6 @@ export default function D104() {
                     );
                   })
                 )}
-              </div>
-            </div>
-
-            {/* ── 컴퓨터 정보 ── */}
-            <div style={{ marginTop: 14 }}>
-              <div style={styles.infoCard}>
-                <div style={styles.infoHead}>
-                  <p style={styles.infoTitle}>컴퓨터 정보</p>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    {!isEditingComputer ? (
-                      <button
-                        type="button"
-                        onClick={startEditComputer}
-                        style={styles.smallBtn}
-                      >
-                        수정
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={saveComputerDraft}
-                          style={{
-                            ...styles.smallBtn,
-                            background: C.accent,
-                            color: "#fdfaf7",
-                            border: `1px solid ${C.accent}`,
-                          }}
-                        >
-                          저장
-                        </button>
-                        <button
-                          type="button"
-                          onClick={cancelEditComputer}
-                          style={styles.smallBtn}
-                        >
-                          취소
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div style={styles.row2}>
-                  <div style={styles.field}>
-                    <div style={styles.label}>위치</div>
-                    <input
-                      value={selectedComputer?.location ?? ""}
-                      readOnly
-                      style={styles.input}
-                    />
-                  </div>
-                  <div style={styles.field}>
-                    <div style={styles.label}>컴퓨터 번호</div>
-                    <input
-                      value={String(
-                        selectedComputer?.computer_number ?? selectedComputerId
-                      )}
-                      readOnly
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.row2}>
-                  <div style={styles.field}>
-                    <div style={styles.label}>제조사(제품명)</div>
-                    <input
-                      value={computerDraft.manufacturer}
-                      onChange={(e) =>
-                        setComputerDraft((d) => ({
-                          ...d,
-                          manufacturer: e.target.value,
-                        }))
-                      }
-                      style={styles.input}
-                      disabled={!isEditingComputer}
-                      placeholder="예) Dell / LG / Samsung"
-                    />
-                  </div>
-                  <div style={styles.field}>
-                    <div style={styles.label}>모델(머신타입)</div>
-                    <input
-                      value={computerDraft.model}
-                      onChange={(e) =>
-                        setComputerDraft((d) => ({
-                          ...d,
-                          model: e.target.value,
-                        }))
-                      }
-                      style={styles.input}
-                      disabled={!isEditingComputer}
-                      placeholder="예) OptiPlex 7090"
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.row2}>
-                  <div style={styles.field}>
-                    <div style={styles.label}>시리얼 넘버</div>
-                    <input
-                      value={computerDraft.serial_number}
-                      onChange={(e) =>
-                        setComputerDraft((d) => ({
-                          ...d,
-                          serial_number: e.target.value,
-                        }))
-                      }
-                      style={styles.input}
-                      disabled={!isEditingComputer}
-                      placeholder="예) SN1234..."
-                    />
-                  </div>
-                  <div style={styles.field}>
-                    <div style={styles.label}>고장 여부</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          isEditingComputer &&
-                          setComputerDraft((d) => ({ ...d, is_broken: false }))
-                        }
-                        style={{
-                          flex: 1,
-                          height: 40,
-                          borderRadius: 10,
-                          border: computerDraft.is_broken
-                            ? `1px solid ${C.border}`
-                            : `1px solid ${C.accent}`,
-                          background: computerDraft.is_broken ? C.bg : C.accent,
-                          color: computerDraft.is_broken ? C.subtext : "#fdfaf7",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontSize: 13,
-                          transition: "background 0.15s",
-                        }}
-                        aria-pressed={!computerDraft.is_broken}
-                        disabled={!isEditingComputer}
-                      >
-                        정상
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          isEditingComputer &&
-                          setComputerDraft((d) => ({ ...d, is_broken: true }))
-                        }
-                        style={{
-                          flex: 1,
-                          height: 40,
-                          borderRadius: 10,
-                          border: computerDraft.is_broken
-                            ? `1px solid ${C.pcBrokenText}`
-                            : `1px solid ${C.border}`,
-                          background: computerDraft.is_broken
-                            ? C.pcBrokenText
-                            : C.bg,
-                          color: computerDraft.is_broken ? "#fdfaf7" : C.subtext,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontSize: 13,
-                          transition: "background 0.15s",
-                        }}
-                        aria-pressed={!!computerDraft.is_broken}
-                        disabled={!isEditingComputer}
-                      >
-                        고장
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── 요청 목록 (비고 자리로 이동) ── */}
-                <div style={{ marginTop: 6 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 700, margin: 0, color: C.text }}>
-                      요청 목록
-                    </div>
-                    <div style={{ fontSize: 11, color: C.subtext }}>
-                      선택 PC: {selectedComputer?.computer_number ?? selectedComputerId}
-                    </div>
-                  </div>
-
-                  <div style={styles.bigBox}>
-                    <div style={styles.listTitle}>
-                      요청 목록 (PC {selectedComputer?.computer_number ?? selectedComputerId}) ({filtered.length})
-                    </div>
-
-                    {filtered.length === 0 ? (
-                      <div style={{ fontSize: 13, padding: 10, color: C.subtext }}>
-                        아직 요청 없음
-                      </div>
-                    ) : (
-                      filtered.map((r) => (
-                        <div key={r.id} style={styles.item}>
-                          <div style={styles.itemTop}>
-                            <div style={styles.badgeRow}>
-                              <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
-                            </div>
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                              <span style={styles.timeText}>{new Date(r.createdAt).toLocaleString()}</span>
-                              <button
-                                type="button"
-                                onClick={() => setRepairLogs((prev) => prev.filter((x) => x.id !== r.id))}
-                                style={styles.smallBtn}
-                                title="이 요청 삭제"
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          </div>
-                          <div style={styles.itemTitle}>{r.title}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -913,7 +1175,7 @@ export default function D104() {
               <div style={styles.infoHead}>
                 <p style={styles.infoTitle}>요청 작성</p>
                 <div style={styles.infoMeta}>
-                  선택 PC: {selectedComputer?.computer_number ?? selectedComputerId}
+                  선택 PC: {selectedComputer?.computer_number ?? selectedSeatNumber}
                 </div>
               </div>
 
@@ -938,7 +1200,7 @@ export default function D104() {
                     value={requestText}
                     onChange={(e) => setRequestText(e.target.value)}
                     style={styles.input}
-                    placeholder={`예) PC ${selectedComputer?.computer_number ?? selectedComputerId} 모니터 깜빡임`}
+                    placeholder={`예) PC ${selectedComputer?.computer_number ?? selectedSeatNumber} 모니터 깜빡임`}
                   />
                 </div>
 
@@ -964,12 +1226,11 @@ export default function D104() {
                           <span style={styles.badge("gray")}>PC {r.computer_id}</span>
                           <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
                         </div>
-
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                           <span style={styles.timeText}>{new Date(r.createdAt).toLocaleString()}</span>
                           <button
                             type="button"
-                            onClick={() => setRepairLogs((prev) => prev.filter((x) => x.id !== r.id))}
+                            onClick={() => onDeleteReport(r.id, r.computer_id)}
                             style={styles.smallBtn}
                             title="이 요청 삭제"
                           >
@@ -977,16 +1238,13 @@ export default function D104() {
                           </button>
                         </div>
                       </div>
-
                       <div style={styles.itemTitle}>{r.title}</div>
                     </div>
                   ))
               )}
             </div>
 
-            <div style={styles.note}>
-              * 좌측에서 PC 선택 후, 컴퓨터 정보 아래에서 요청을 작성하면 여기에 전부 모입니다.
-            </div>
+            {/* (note removed as per instructions) */}
           </div>
         </div>
       </div>
