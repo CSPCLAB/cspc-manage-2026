@@ -34,3 +34,16 @@
 .link:hover {
   background: #f1f5f9;
 }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 520px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
