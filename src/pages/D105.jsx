@@ -417,7 +417,7 @@ export default function D105() {
       background: C.bg,
       padding: 14,
       boxSizing: "border-box",
-      fontFamily: "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
+      fontFamily: "inherit",
       color: C.text,
     },
     topBar: {
