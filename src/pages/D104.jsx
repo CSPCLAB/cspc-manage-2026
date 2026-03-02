@@ -462,9 +462,11 @@ export default function D104() {
   const styles = {
     page: {
       height: "100vh",
+      display: "flex",
+      flexDirection: "column",
       overflow: "hidden",
       background: C.bg,
-      padding: 22,
+      padding: 16,
       boxSizing: "border-box",
       fontFamily:
         "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
@@ -543,8 +545,8 @@ export default function D104() {
       gridTemplateColumns: "1fr 380px",
       gap: 16,
       alignItems: "start",
-      height: "calc(100vh - 120px)",
-      overflow: "hidden",
+      flex: 1,
+      minHeight: 0,
     },
 
     card: {
@@ -556,6 +558,7 @@ export default function D104() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
 
     leftWrap: {
@@ -563,6 +566,7 @@ export default function D104() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
 
     leftHeader: {
@@ -652,6 +656,7 @@ export default function D104() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
 
     infoCard: {
