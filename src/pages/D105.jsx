@@ -130,6 +130,7 @@ export default function D105() {
 
   useEffect(() => {
     const MIN_PCT = 70;
+    const MAX_PCT = 77; // 77% 크기가 보기 좋았던 사용자 선호
     const SAFETY_PX = 12; // 하단/스크롤바/라인하이트 오차 여유
 
     function updateScale() {
@@ -154,7 +155,7 @@ export default function D105() {
       let pct = Math.floor(Math.min(100, (available / contentH) * 100));
       if (pct >= 100 && contentH > available) pct = 99;
 
-      const clamped = Math.max(MIN_PCT, pct);
+      const clamped = Math.min(MAX_PCT, Math.max(MIN_PCT, pct));
       setLayoutScalePct(clamped);
     }
 
@@ -467,6 +468,8 @@ export default function D105() {
   const styles = {
     page: {
       height: "100vh",
+      display: "flex",
+      flexDirection: "column",
       overflow: "hidden",
       background: C.bg,
       padding: 22,
@@ -538,7 +541,8 @@ export default function D105() {
       gridTemplateColumns: "1fr 380px",
       gap: 16,
       alignItems: "start",
-      height: "calc(100vh - 120px)",
+      flex: 1,
+      minHeight: 0,
       overflow: "hidden",
     },
     card: {
@@ -550,12 +554,14 @@ export default function D105() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
     leftWrap: {
       padding: 18,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
     leftHeader: {
       display: "flex",
@@ -657,6 +663,7 @@ export default function D105() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
+      minHeight: 0,
     },
     infoCard: {
       borderRadius: 14,
