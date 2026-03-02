@@ -690,7 +690,7 @@ export default function AdminPage() {
             value={userLogs}
             readOnly
             placeholder="학회원을 선택하면 로그가 자동으로 표시됩니다. 날짜를 선택하면 필터링됩니다."
-            style={{ minHeight: 380 }}
+            style={{ height: 420, maxHeight: 420, overflow: "auto", resize: "none" }}
           />
 
           <details style={{ marginTop: 12 }}>
