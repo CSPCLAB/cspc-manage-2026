@@ -1,11 +1,11 @@
 .page {
   height: 100vh;
-  padding: 16px;
+  padding: 12px;
   box-sizing: border-box;
   background: #f8fafc;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .card {
@@ -13,14 +13,14 @@
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   background: #ffffff;
-  padding: 16px;
+  padding: 12px;
 }
 
 .link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
+  height: 32px;
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
@@ -28,7 +28,7 @@
   text-decoration: none;
   color: #111827;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .link:hover {
@@ -37,8 +37,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: 1fr 520px;
-  gap: 16px;
+  grid-template-columns: 1fr 320px;
+  gap: 12px; 
   align-items: start;
 }
 .label {
@@ -49,4 +49,9 @@
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* 오른쪽 로그 카드만 세로 확장 */
+.grid > .card:last-child {
+  min-height: 600px;
 }
