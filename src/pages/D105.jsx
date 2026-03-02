@@ -3,16 +3,6 @@ import { Link } from "react-router-dom";
 
 export default function D105() {
   const MAIN_COLS = 10;
-  // ===== responsive sizing (small laptop friendly) =====
-  const CELL_H = "clamp(34px, 4.2vh, 54px)";        // seat cell height
-  const GRID_GAP = "clamp(6px, 0.9vh, 10px)";        // gap between cells
-  const PAD_PAGE = "clamp(10px, 1.6vh, 16px)";
-  const PAD_CARD = "clamp(12px, 2.0vh, 18px)";
-  const INPUT_H = "clamp(34px, 3.8vh, 40px)";
-  const TOPBAR_MB = "clamp(10px, 1.6vh, 16px)";
-  const INFO_MB = "clamp(10px, 1.6vh, 14px)";
-  const LEFT_HDR_MB = "clamp(10px, 1.6vh, 14px)";
-  const ROOM_PAD_TOP = "clamp(22px, 3.0vh, 34px)";
   const LOCATION = "D105";
 
   // ===== 좌석 배치(프론트 고정) =====
@@ -132,6 +122,23 @@ export default function D105() {
 
   // ===== 선택 좌석 =====
   const [selectedSeatNumber, setSelectedSeatNumber] = useState(allSeats[0] ?? 1);
+
+  // ===== 레이아웃 스케일링 =====
+  const BASE_LAYOUT_HEIGHT = 820; // approximate full layout height at 100%
+  const [layoutScale, setLayoutScale] = useState(1);
+
+  useEffect(() => {
+    function updateScale() {
+      const vh = window.innerHeight;
+      const available = vh - 160; // subtract topbar + padding buffer
+      const scale = Math.min(1, available / BASE_LAYOUT_HEIGHT);
+      setLayoutScale(scale);
+    }
+
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
 
   // --- seat popover (말풍선) ---
   const roomRef = useRef(null);
@@ -424,11 +431,9 @@ export default function D105() {
   const styles = {
     page: {
       height: "100vh",
-      display: "flex",
-      flexDirection: "column",
       overflow: "hidden",
       background: C.bg,
-      padding: PAD_PAGE,
+      padding: 22,
       boxSizing: "border-box",
       fontFamily: "'Georgia', 'Palatino Linotype', 'Book Antiqua', serif, system-ui",
       color: C.text,
@@ -442,7 +447,7 @@ export default function D105() {
       background: C.card,
       border: `1px solid ${C.border}`,
       boxShadow: "0 4px 20px rgba(92,82,72,.07)",
-      marginBottom: TOPBAR_MB,
+      marginBottom: 16,
     },
     brand: { display: "flex", alignItems: "center", gap: 12 },
     navRow: { display: "flex", gap: 8, marginBottom: 6 },
@@ -497,8 +502,8 @@ export default function D105() {
       gridTemplateColumns: "1fr 380px",
       gap: 16,
       alignItems: "start",
-      flex: 1,
-      minHeight: 0,
+      height: "calc(100vh - 120px)",
+      overflow: "hidden",
     },
     card: {
       background: C.card,
@@ -509,20 +514,18 @@ export default function D105() {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      minHeight: 0,
     },
     leftWrap: {
-      padding: PAD_CARD,
+      padding: 18,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      minHeight: 0,
     },
     leftHeader: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "baseline",
-      marginBottom: LEFT_HDR_MB,
+      marginBottom: 14,
     },
     leftHeaderTitle: { fontWeight: 700, color: C.text, fontSize: 14 },
     leftHeaderHint: { fontSize: 12, color: C.subtext },
@@ -531,38 +534,36 @@ export default function D105() {
       background: C.bg,
       border: `1px solid ${C.border}`,
       borderRadius: 14,
-      padding: PAD_PAGE,
-      paddingTop: ROOM_PAD_TOP,
+      padding: 16,
+      paddingTop: 34,
       flex: 1,
       overflow: "auto",
     },
     roomFlex: {
       display: "grid",
       gridTemplateColumns: "1fr 72px",
-      gap: GRID_GAP,
+      gap: 10,
       alignItems: "start",
     },
     grid: {
       display: "grid",
       gridTemplateColumns: `repeat(${MAIN_COLS}, 1fr)`,
-      gap: GRID_GAP,
+      gap: 10,
     },
     sideWrap: {
+      position: "relative",
       width: "72px",
-      display: "flex",
-      flexDirection: "column",
-      gap: GRID_GAP,
       overflow: "visible",
     },
     cellEmpty: {
-      height: CELL_H,
+      height: 54,
       borderRadius: 14,
       border: `1px dashed ${C.border}`,
       background: "transparent",
       boxSizing: "border-box",
     },
     cellPodium: {
-      height: CELL_H,
+      height: 54,
       borderRadius: 14,
       border: `1px solid ${C.borderMed}`,
       background: C.podium,
@@ -576,7 +577,7 @@ export default function D105() {
       letterSpacing: "0.3px",
     },
     cellPc: (active, isAlert) => ({
-      height: CELL_H,
+      height: 54,
       borderRadius: 14,
       border: active
         ? `2px solid ${C.accentHover}`
@@ -595,7 +596,9 @@ export default function D105() {
       transition: "background 0.15s, border-color 0.15s",
     }),
     cellPcSide: (active, isAlert) => ({
-      height: CELL_H,
+      position: "absolute",
+      left: 0,
+      right: 0,
       borderRadius: 14,
       border: active
         ? `2px solid ${C.accentHover}`
@@ -614,18 +617,17 @@ export default function D105() {
       transition: "background 0.15s, border-color 0.15s",
     }),
     formWrap: {
-      padding: PAD_CARD,
+      padding: 18,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      minHeight: 0,
     },
     infoCard: {
       borderRadius: 14,
       border: `1px solid ${C.border}`,
       background: C.card,
       padding: 14,
-      marginBottom: INFO_MB,
+      marginBottom: 14,
     },
     infoHead: {
       display: "flex",
@@ -653,7 +655,7 @@ export default function D105() {
     },
     input: {
       width: "100%",
-      height: INPUT_H,
+      height: 40,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -665,7 +667,7 @@ export default function D105() {
     },
     select: {
       width: "100%",
-      height: INPUT_H,
+      height: 40,
       padding: "0 12px",
       borderRadius: 10,
       border: `1px solid ${C.border}`,
@@ -1022,7 +1024,14 @@ export default function D105() {
                   </div>
                 </div>
               )}
-              <div style={styles.roomFlex}>
+              <div
+                style={{
+                  transform: `scale(${layoutScale})`,
+                  transformOrigin: "top left",
+                  width: `${100 / layoutScale}%`,
+                }}
+              >
+                <div style={styles.roomFlex}>
                 <div style={styles.grid}>
                   {mainGrid.flatMap((row, rIdx) =>
                     row.map((cell, cIdx) => {
@@ -1049,30 +1058,50 @@ export default function D105() {
                   )}
                 </div>
 
-                {/* 오른쪽 세로열 (row-aligned, responsive) */}
-                <div style={styles.sideWrap}>
-                  {rows.map((r, idx) => {
-                    if (r.type === "seats") {
-                      const num = r.side;
-                      return (
-                        <div
-                          key={`side-${idx}-${num}`}
-                          style={styles.cellPcSide(num === selectedSeatNumber, seatHasReqOrBroken(num))}
-                          onClick={(e) => openSeatPopover(num, e)}
-                          title={`PC ${num}`}
-                        >
-                          {num}
-                        </div>
-                      );
-                    }
+                {/* 오른쪽 세로열 */}
+                {(() => {
+                  const CELL_H = 54;
+                  const GAP = 10;
+                  const STEP = CELL_H + GAP;
+                  const INTRA_GAP = 4;
+                  const PAIR_EXTRA = 4;
+                  const seatRowIdxs = rows.map((r, idx) => (r.type === "seats" ? idx : null)).filter((v) => v !== null);
 
-                    if (r.type === "podium") {
-                      return <div key={`side-${idx}-podium`} style={styles.cellEmpty} />;
-                    }
+                  const top21 = seatRowIdxs[1] * STEP;
+                  const bottom76 = seatRowIdxs[6] * STEP + CELL_H;
+                  const rawSideH = (bottom76 - top21 - 5 * INTRA_GAP - 3 * PAIR_EXTRA) / 6;
+                  const SIDE_H = Math.max(24, rawSideH);
+                  const baseTop = top21 - (SIDE_H + INTRA_GAP);
 
-                    // aisle or unknown
-                    return <div key={`side-${idx}-empty`} style={styles.cellEmpty} />;
-                  })}
+                  const pairs = Math.ceil(seatRowIdxs.length / 2);
+                  const gapsCount = Math.max(0, seatRowIdxs.length - 1);
+                  const pairGaps = Math.max(0, pairs - 1);
+                  const wrapHeight =
+                    seatRowIdxs.length * SIDE_H + gapsCount * INTRA_GAP + pairGaps * PAIR_EXTRA;
+
+                  return (
+                    <div style={{ ...styles.sideWrap, height: wrapHeight }}>
+                      {seatRowIdxs.map((idx, seatPos) => {
+                        const num = rows[idx].side;
+                        const active = num === selectedSeatNumber;
+                        const accGap = seatPos * INTRA_GAP + Math.floor(seatPos / 2) * PAIR_EXTRA;
+                        const top = baseTop + seatPos * SIDE_H + accGap;
+                        const height = SIDE_H;
+
+                        return (
+                          <div
+                            key={`side-${num}`}
+                            style={{ ...styles.cellPcSide(active, seatHasReqOrBroken(num)), top, height }}
+                            onClick={(e) => openSeatPopover(num, e)}
+                            title={`PC ${num}`}
+                          >
+                            {num}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 </div>
               </div>
             </div>
