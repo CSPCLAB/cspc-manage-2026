@@ -140,21 +140,29 @@ export default function D105() {
     const roomRect = roomEl.getBoundingClientRect();
     const cellRect = targetEl.getBoundingClientRect();
 
-    // Position to the right of the clicked seat, inside the room frame coordinate system
-    let top = cellRect.top - roomRect.top;
-    let left = cellRect.right - roomRect.left + 12;
-
-    // Keep it within the room frame width if possible
+    // Place popover near the clicked seat (viewport coordinates)
     const POPOVER_W = 320;
     const POPOVER_PAD = 12;
-    const maxLeft = roomRect.width - POPOVER_W - POPOVER_PAD;
+    const EST_H = 320; // rough popover height for clamping
+
+    let top = cellRect.top;
+    let left = cellRect.right + 12;
+
+    // If no space on the right, show on the left of the seat
+    const maxLeft = window.innerWidth - POPOVER_W - POPOVER_PAD;
     if (left > maxLeft) {
-      // If no space on right, show on left
-      left = Math.max(POPOVER_PAD, cellRect.left - roomRect.left - POPOVER_W - 12);
+      left = Math.max(POPOVER_PAD, cellRect.left - POPOVER_W - 12);
     }
 
-    // Clamp vertically
-    const maxTop = Math.max(POPOVER_PAD, roomRect.height - 260);
+    // Seats below the podium (45+) should prefer bottom-aligned popover (show upward)
+    const maxTop = Math.max(POPOVER_PAD, window.innerHeight - EST_H - POPOVER_PAD);
+    const preferBottom = seatNumber >= 45;
+
+    if (preferBottom || top + EST_H + POPOVER_PAD > window.innerHeight) {
+      // Move up so the bottom of the popover stays in view (roughly aligns to the clicked seat's bottom)
+      top = cellRect.bottom - EST_H;
+    }
+
     top = Math.min(Math.max(POPOVER_PAD, top), maxTop);
 
     setPopover({ open: true, top, left });
@@ -723,7 +731,7 @@ export default function D105() {
     note: { fontSize: 11, color: C.subtext, marginTop: 10 },
 
     popover: {
-      position: "absolute",
+      position: "fixed",
       width: 320,
       borderRadius: 14,
       border: `1px solid ${C.borderMed}`,
