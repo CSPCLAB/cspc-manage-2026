@@ -175,7 +175,6 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
     if (!res.ok || !payload?.success) {
       throw new Error(payload?.message || `${week}주차 시간표 불러오기 실패`);
     }
-
     const schedules = payload?.data?.schedules ?? [];
     return buildFilledCells(schedules, pool);
   }
@@ -483,6 +482,7 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
         resetEditUI();
         return;
       }
+      console.log(changes);
 
       await Promise.all(
         changes.map(async (change) => {
@@ -741,7 +741,6 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
 
                         {showSuggest && (
                           <div className={styles.suggestBox}>
-                            <div className={styles.suggestTop}>↑↓ 이동 · Tab/Enter 적용 · Esc 원복</div>
 
                             {suggestions.map((s, idx) => (
                               <button

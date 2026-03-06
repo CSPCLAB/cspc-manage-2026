@@ -322,5 +322,5 @@
 }
 
 .substitute {
-  border-style: dashed !important;
+  border: 2px dashed rgba(0, 0, 0, 0.18) !important;
 }
