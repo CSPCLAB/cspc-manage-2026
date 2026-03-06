@@ -87,102 +87,141 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
     return () => clearInterval(t);
   }, []);
 
+  const [scheduleCache, setScheduleCache] = useState({});
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
-  // ✅ (3번) week 바뀌면 다시 fetch 되게: 의존성에 week 추가
+  function buildFilledCells(schedules, adminPool) {
+    const nextCells = (schedules ?? [])
+      .map((s) => {
+        const slot = s?.Timetable_Slots;
+        const dayIndex = dayIndexFromKoreanDay(slot?.day_of_week);
+        const periodKey = Number(slot?.period_number);
+
+        if (dayIndex == null || !Number.isFinite(periodKey)) return null;
+
+        const weeklyId = s?.id ?? null;
+        const assignedId = s?.assigned_admin_id != null ? s.assigned_admin_id : null;
+        const defaultId = slot?.default_admin_id != null ? slot.default_admin_id : null;
+        const isSub = Boolean(s?.is_substitute);
+
+        const fromPool = (adminId) =>
+          adminId != null ? adminPool.find((a) => a.id === adminId) : null;
+
+        const assignedUser = fromPool(assignedId);
+        const defaultUser = fromPool(defaultId);
+
+        const admin =
+          assignedUser == null
+            ? null
+            : {
+                id: assignedUser.id,
+                name: assignedUser.name,
+                color: assignedUser.color_hex ?? assignedUser.color,
+              };
+
+        const defaultAdmin =
+          defaultUser == null
+            ? null
+            : {
+                id: defaultUser.id,
+                name: defaultUser.name,
+                color: defaultUser.color_hex ?? defaultUser.color,
+              };
+
+        return {
+          weeklyId,
+          dayIndex,
+          periodKey,
+          admin,               // 현재 화면에 표시할 관리자
+          defaultAdmin,        // 기본 담당자
+          assignedAdminId: assignedId, // 실제 DB override 값
+          defaultAdminId: defaultId,
+          isSub,
+        };
+      })
+      .filter(Boolean);
+
+    const filled = [];
+    const mapFromApi = new Map(nextCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c]));
+
+    for (let d = 0; d < DAYS.length; d++) {
+      for (let p = 0; p < PERIODS.length; p++) {
+        const k = keyOf(d, PERIODS[p].key);
+        filled.push(
+          mapFromApi.get(k) ?? {
+            weeklyId: null,
+            dayIndex: d,
+            periodKey: PERIODS[p].key,
+            admin: null,
+            defaultAdmin: null,
+            assignedAdminId: null,
+            defaultAdminId: null,
+            isSub: false,
+          }
+        );
+      }
+    }
+
+    return filled;
+  }
+
+  async function fetchWeekSchedule(week, pool) {
+    
+    const res = await fetch(`/api/schedules/${week}`);
+    const payload = await res.json().catch(() => null);
+
+    if (!res.ok || !payload?.success) {
+      throw new Error(payload?.message || `${week}주차 시간표 불러오기 실패`);
+    }
+
+    const schedules = payload?.data?.schedules ?? [];
+    return buildFilledCells(schedules, pool);
+  }
+
+  // 1. 현재 week 먼저 fetch해서 바로 보여줌
+  // 2. 동시에 1~16주 나머지 캐시 쌓기 (현재 week 제외)
   useEffect(() => {
     if (!adminPool.length) return;
 
     let alive = true;
 
-    const fetchSchedule = async () => {
+    const fetchSchedules = async () => {
       setLoadingSchedule(true);
       setScheduleError(null);
 
       try {
-        // ✅ 주차별 API (서버가 이 형태를 지원해야 함)
-        const res = await fetch(`/api/schedules/${week}`);
-        const payload = await res.json().catch(() => null);
-
-        if (!res.ok || !payload?.success) {
-          throw new Error(payload?.message || "시간표 불러오기 실패");
-        }
-
-        // 서버가 week_number 내려주면 동기화(선택)
-        const weekNum = payload?.data?.week_number;
-        if (Number.isFinite(Number(weekNum)) && alive) {
-          setWeek(Number(weekNum));
-        }
-
-        const schedules = payload?.data?.schedules ?? [];
-
-        const nextCells = schedules
-          .map((s) => {
-            const slot = s?.Timetable_Slots;
-            const dayIndex = dayIndexFromKoreanDay(slot?.day_of_week);
-            const periodKey = Number(slot?.period_number);
-
-            if (dayIndex == null || !Number.isFinite(periodKey)) return null;
-
-            // ✅ (2번) assigned_admin_id 없으면 default_admin_id로 채우기
-            const assignedId = s?.assigned_admin_id != null ? Number(s.assigned_admin_id) : null;
-            const defaultId = slot?.default_admin_id != null ? Number(slot.default_admin_id) : null;
-            const finalId = assignedId ?? defaultId;
-
-            // 서버가 Admin_Users를 내려주면 우선 사용
-            const au = s?.Admin_Users;
-
-            // 아니면 adminPool에서 찾아서 채움
-            const fromPool = finalId != null ? adminPool.find((a) => Number(a.id) === finalId) : null;
-
-            const admin =
-              finalId == null
-                ? null
-                : au
-                ? { id: finalId, name: au.name, color: au.color_hex }
-                : fromPool
-                ? {
-                    id: fromPool.id,
-                    name: fromPool.name,
-                    color: fromPool.color_hex ?? fromPool.color,
-                  }
-                : null;
-
-            return {
-              dayIndex,
-              periodKey,
-              admin,
-              isSub: Boolean(s?.is_substitute),
-            };
-          })
-          .filter(Boolean);
-
-        // 7*6 고정 그리드로 채우기
-        const filled = [];
-        const mapFromApi = new Map(nextCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c]));
-        for (let d = 0; d < DAYS.length; d++) {
-          for (let p = 0; p < PERIODS.length; p++) {
-            const k = keyOf(d, PERIODS[p].key);
-            filled.push(
-              mapFromApi.get(k) ?? {
-                dayIndex: d,
-                periodKey: PERIODS[p].key,
-                admin: null,
-                isSub: false,
-              }
-            );
-          }
-        }
+        const firstWeekCells = await fetchWeekSchedule(week, adminPool);
 
         if (!alive) return;
 
-        setCells(filled);
-        setOriginalCells(filled);
-        setIsEdit(false);
-        setDraftInputs({});
-        setSuggestOpenFor(null);
-        setHighlightIndex(0);
+        setScheduleCache((prev) => ({
+          ...prev,
+          [week]: firstWeekCells,
+        }));
+
+        setCells(firstWeekCells);
+        setOriginalCells(firstWeekCells);
+
+        const weeks = Array.from({ length: 16 }, (_, i) => i + 1).filter((w) => w !== week);
+
+        Promise.all(
+          weeks.map(async (w) => {
+            const cells = await fetchWeekSchedule(w, adminPool);
+            return [w, cells];
+          })
+        )
+          .then((results) => {
+            if (!alive) return;
+            setScheduleCache((prev) => ({
+              ...prev,
+              ...Object.fromEntries(results),
+            }));
+          })
+          .catch(() => {
+            // 나머지 프리로드 실패는 치명적이지 않게 무시 가능
+          });
       } catch (e) {
         if (!alive) return;
         setScheduleError(e?.message || "시간표 불러오기 오류");
@@ -192,12 +231,24 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
       }
     };
 
-    fetchSchedule();
+    fetchSchedules();
 
     return () => {
       alive = false;
     };
-  }, [adminPool, week]);
+  }, [adminPool]);
+
+  // 주차 변경
+  useEffect(() => {
+    if (!scheduleCache[week]) return;
+
+    setCells(scheduleCache[week]);
+    setOriginalCells(scheduleCache[week]);
+    setIsEdit(false);
+    setDraftInputs({});
+    setSuggestOpenFor(null);
+    setHighlightIndex(0);
+  }, [week, scheduleCache]);
 
   const { exactMap, adminById, candidates } = useMemo(() => {
     const byId = new Map();
@@ -323,6 +374,36 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
     next?.select?.();
   }
 
+  function resetEditUI() {
+    setIsEdit(false);
+    setDraftInputs({});
+    setSuggestOpenFor(null);
+    setHighlightIndex(0);
+  }
+
+  function toViewAdmin(adminId) {
+    if (adminId == null) return null;
+
+    const admin = adminById.get(adminId);
+    if (!admin) return null;
+
+    return {
+      id: admin.id,
+      name: admin.name,
+      color: admin.color_hex ?? admin.color,
+    };
+  }
+
+  function buildDesiredCellState(baseCell, nextResolvedAdminId) {
+    const defaultId = baseCell?.defaultAdminId ?? null;
+
+    return {
+      admin: toViewAdmin(nextResolvedAdminId),
+      assignedAdminId: nextResolvedAdminId,
+      isSub: nextResolvedAdminId !== defaultId,
+    };
+  }
+
   const { hasErrors, dirtyCount, isDirty } = useMemo(() => {
     if (!isEdit) return { hasErrors: false, dirtyCount: 0, isDirty: false };
 
@@ -359,54 +440,103 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
   }, [suggestions.length]);
 
   const onSave = async () => {
-    if (!isEdit || hasErrors || !isDirty) return;
+    if (!isEdit || hasErrors || !isDirty || savingSchedule) return;
 
-    const next = cells.map((c) => {
-      const k = keyOf(c.dayIndex, c.periodKey);
-      const di = draftInputs[k];
+    try {
+      setSavingSchedule(true);
 
-      const n = normalizeName(di?.text ?? "");
-      const orig = originalMap.get(k);
-      const origId = orig?.admin?.id ?? null;
+      const changes = [];
+      const nextCells = cells.map((c) => {
+        const k = keyOf(c.dayIndex, c.periodKey);
+        const di = draftInputs[k];
 
-      if (!n) {
-        const changed = origId !== null;
-        return { ...c, admin: null, isSub: changed ? true : false };
-      }
+        const normalized = normalizeName(di?.text ?? "");
+        const nextResolvedAdminId = normalized === "" ? null : di?.resolvedAdminId ?? null;
 
-      if (di?.resolvedAdminId) {
-        const admin = adminById.get(di.resolvedAdminId);
-        const changed = origId !== admin?.id;
+        const currentShownAdminId = c?.admin?.id ?? null;
+        const actuallyChanged = currentShownAdminId !== nextResolvedAdminId;
+
+        if (!actuallyChanged) {
+          return c;
+        }
+
+        const desired = buildDesiredCellState(c, nextResolvedAdminId);
+        
+        if (c.weeklyId == null) {
+          throw new Error("weeklyId가 없는 칸은 저장할 수 없어요.");
+}
+        changes.push({
+          weekly_id: c.weeklyId,
+          new_admin_id: desired.assignedAdminId,
+          is_substitute: desired.isSub,
+        });
+
         return {
           ...c,
-          admin: admin ? { id: admin.id, name: admin.name, color: admin.color } : null,
-          isSub: changed ? true : c.isSub,
+          admin: desired.admin,
+          assignedAdminId: desired.assignedAdminId,
+          isSub: desired.isSub,
         };
+      });
+
+      if (changes.length === 0) {
+        resetEditUI();
+        return;
       }
 
-      return c;
-    });
+      await Promise.all(
+        changes.map(async (change) => {
+          const res = await fetch("/api/schedules/change", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(change),
+          });
 
-    setCells(next);
-    setOriginalCells(next);
-    setIsEdit(false);
-    setDraftInputs({});
-    setSuggestOpenFor(null);
-    setHighlightIndex(0);
+          const payload = await res.json().catch(() => null);
+
+          if (!res.ok || !payload?.success) {
+            throw new Error(payload?.message || "시간표 저장 실패");
+          }
+
+          return payload;
+        })
+      );
+
+      setCells(nextCells);
+      setOriginalCells(nextCells);
+      setScheduleCache((prev) => ({
+        ...prev,
+        [week]: nextCells,
+      }));
+      resetEditUI();
+    } catch (e) {
+      window.alert(e?.message || "시간표 저장 중 오류가 발생했어요.");
+    } finally {
+      setSavingSchedule(false);
+    }
   };
 
   const onCancel = () => {
     if (!isEdit) return;
+
     if (isDirty) {
       const ok = window.confirm("변경사항이 있어요. 취소하면 모두 사라져요. 취소할까요?");
       if (!ok) return;
     }
+
     setCells(originalCells);
-    setIsEdit(false);
-    setDraftInputs({});
-    setSuggestOpenFor(null);
-    setHighlightIndex(0);
+    resetEditUI();
   };
+
+  function handleChangeWeek(nextWeek) {
+    if (isEdit && isDirty) {
+      const ok = window.confirm("변경사항이 있어요. 저장하지 않고 이동할까요?");
+      if (!ok) return;
+    }
+    setWeek(nextWeek);
+  }
 
   const todayIndex = useMemo(() => {
     const js = now.getDay(); // 0=일..6=토
@@ -435,7 +565,7 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
       title="주차별 시간표"
       right={
         <div className={styles.rightControls}>
-          <WeekPager week={week} onChangeWeek={setWeek} />
+          <WeekPager week={week} onChangeWeek={handleChangeWeek} />
           {isEdit ? (
             <div className={styles.editActions}>
               <button className={styles.cancelBtn} onClick={onCancel}>
@@ -444,10 +574,18 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
               <button
                 className={styles.saveBtn}
                 onClick={onSave}
-                disabled={hasErrors || !isDirty}
-                title={hasErrors ? "오류를 먼저 해결해줘요" : !isDirty ? "변경사항이 없어요" : "저장"}
+                disabled={savingSchedule || hasErrors || !isDirty}
+                title={
+                  savingSchedule
+                    ? "저장 중이에요"
+                    : hasErrors
+                    ? "오류를 먼저 해결해줘요"
+                    : !isDirty
+                    ? "변경사항이 없어요"
+                    : "저장"
+                }
               >
-                저장
+                {savingSchedule ? "저장 중..." : "저장"}
               </button>
             </div>
           ) : (
@@ -462,7 +600,7 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
     >
       {isEdit && (
         <div className={styles.editHint}>
-          (Enter: 다음 / Shift+Enter: 이전 / Tab: 후보 적용 / ↑↓: 후보 이동 / Esc: 현재 칸 원복)
+          (Tab: 후보 적용 / ↑↓: 후보 이동 / Esc: 현재 칸 원복)
           {hasErrors && <span className={styles.hintError}> — 오류가 있어 저장할 수 없어요</span>}
           {!hasErrors && isDirty && <span className={styles.hintDirty}> — 변경 {dirtyCount}개</span>}
         </div>
@@ -625,7 +763,6 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
                       <span className={styles.adminName}>{committed?.admin?.name ?? ""}</span>
                     )}
 
-                    {committed?.isSub && <span className={styles.subBadge}>대타</span>}
                   </div>
                 </div>
               );

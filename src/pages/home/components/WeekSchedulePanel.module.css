@@ -320,3 +320,7 @@
   color: rgba(15, 23, 42, 0.78);
   font-weight: 900;
 }
+
+.substitute {
+  border-style: dashed !important;
+}

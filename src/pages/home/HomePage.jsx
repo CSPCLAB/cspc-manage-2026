@@ -79,7 +79,7 @@ export default function HomePage() {
         if (!json.success) throw new Error(json.message || "학회원 불러오기 실패");
 
         const cleaned = (json.data ?? []).map((u) => ({
-          id: String(u.id),
+          id: u.id,
           name: u.name,
           color: normalizeHexColor(u.color_hex) ?? "#94a3b8",
           late_count: u.late_count ?? 0,
@@ -110,7 +110,6 @@ export default function HomePage() {
         }
 
         const cleaned = (json.data ?? []).map((u) => ({
-          id: String(u.id),
           name: u.name,
           color: normalizeHexColor(u.color_hex) ?? "#94a3b8",
           late_count: u.late_count ?? 0,

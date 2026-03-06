@@ -3,11 +3,17 @@ import styles from "./LateRankPanel.module.css";
 
 function hexToRgba(hex, alpha = 0.18) {
   if (!hex) return "rgba(0,0,0,0.05)";
+
   const h = hex.replace("#", "");
-  const n = parseInt(h, 16);
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+
+  if (Number.isNaN(n)) return "rgba(0,0,0,0.05)";
+
   const r = (n >> 16) & 255;
   const g = (n >> 8) & 255;
   const b = n & 255;
+
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
@@ -24,67 +30,78 @@ export default function LateRankPanel({
     return <Panel title="지각 TOP 3">오류: {rankingError}</Panel>;
   }
 
-  // 🔥 지각 0 제외
-  const filtered = rankingList.filter((x) => x.late_count > 0);
+  const top3 = rankingList
+    .filter((x) => (x?.late_count ?? 0) > 0)
+    .sort((a, b) => (b?.late_count ?? 0) - (a?.late_count ?? 0))
+    .slice(0, 3);
 
-  // 🔥 아무도 없으면 안내 문구
-  if (filtered.length === 0) {
+  if (top3.length === 0) {
     return (
       <Panel title="지각 TOP 3">
-        <div className={styles.emptyMsg}>
-          🎉 아직 아무도 지각하지 않았어요!
-        </div>
+        <div className={styles.emptyMsg}>🎉 아직 지각자가 없어요!</div>
       </Panel>
     );
   }
 
-  const top3 = filtered.slice(0, 3);
+  const rankedTop3 = [];
+  let prevLateCount = null;
+  let currentRank = 0;
+
+  for (let i = 0; i < top3.length; i++) {
+    const x = top3[i];
+
+    if (x.late_count !== prevLateCount) {
+      currentRank = i + 1;
+    }
+
+    rankedTop3.push({
+      ...x,
+      rank: currentRank,
+    });
+
+    prevLateCount = x.late_count;
+  }
 
   return (
     <Panel title="지각 TOP 3">
       <ul className={styles.list}>
-        {top3.map((x, idx) => {
-          const isTop1 = idx === 0;
+        {rankedTop3.map((x) => {
+          const isTop1 = x.rank === 1;
+          const color = x.color ?? "#94a3b8";
 
           return (
             <li
-              key={x.id}
-              className={styles.item}
+              key={x.name}
+              className={`${styles.item} ${isTop1 ? styles.top1Item : ""}`}
               style={
                 isTop1
                   ? {
-                      borderColor: x.color,
-                      background: hexToRgba(x.color, 0.22),
+                      borderColor: color,
+                      background: hexToRgba(color, 0.22),
                     }
                   : undefined
               }
             >
-              {/* 🔥 1등 동그라미도 색상 적용 */}
               <div
                 className={styles.rankCircle}
                 style={
                   isTop1
                     ? {
-                        backgroundColor: x.color,
+                        backgroundColor: color,
                         color: "#fff",
-                        background: x.color,
                       }
                     : undefined
                 }
               >
-                {idx + 1}
+                {x.rank}
               </div>
 
               <div className={styles.name}>
                 {x.name}
-                {isTop1 && (
-                  <span className={styles.crown}> 👑</span>
-                )}
+                {isTop1 && <span className={styles.crown}> 👑</span>}
               </div>
 
-              <div className={styles.late}>
-                {x.late_count}회
-              </div>
+              <div className={styles.late}>{x.late_count}회</div>
             </li>
           );
         })}
