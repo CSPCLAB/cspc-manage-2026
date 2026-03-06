@@ -1,16 +1,7 @@
-﻿.panelFull {
-  height: auto; /* ✅ 100% 제거: 잘림 방지 */
-}
-
-/* ✅ 스크롤은 끄되, 내용이 잘리지 않게 */
-.noScrollBody {
-  overflow: visible;
-}
-
-/* ✅ 7일(월~일), 가로 넘침 방지: 컨테이너 폭 안에서 압축 */
+﻿/* ✅ 7일(월~일), 가로 넘침 방지: 컨테이너 폭 안에서 압축 */
 .grid {
   display: grid;
-  grid-template-columns: 120px repeat(7, minmax(0, 1fr));
+  grid-template-columns: minmax(80px, 1fr) repeat(7, minmax(0, 1fr));
   gap: 8px;
   align-items: start;
   width: 100%;

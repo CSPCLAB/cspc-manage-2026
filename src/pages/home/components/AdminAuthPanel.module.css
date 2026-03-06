@@ -1,7 +1,7 @@
 /* 패널 자체 */
 .panel {
   height: fit-content;
-  min-width: 340px; /* 필요하면 360~380까지 늘려도 됨 */
+  min-width: 320px;
 }
 
 /* 전체 래퍼 */

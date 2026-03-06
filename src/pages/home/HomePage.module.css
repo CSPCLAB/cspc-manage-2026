@@ -1,130 +1,279 @@
 ﻿.page {
-  width: 100vw;
-  height: 100vh;
-
-  /* 기본: 전체 페이지 스크롤은 막고, 내부 패널에서 스크롤되게 */
-  overflow: hidden;
-
-  padding: 16px;
+  min-height: 100vh;
+  height: 100dvh;
+  padding: clamp(12px, 1.4vw, 20px);
   box-sizing: border-box;
   background: #f8fafc;
-
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(12px, 1.2vw, 16px);
+  overflow: hidden;
 }
 
+/* 전체 메인 영역 */
 .grid {
   flex: 1;
   min-height: 0;
   display: grid;
-  gap: 16px;
-
-  grid-template-columns: 1fr minmax(320px, 26vw);
+  gap: clamp(12px, 1.2vw, 16px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 30%);
 }
 
+/* 왼쪽 큰 영역 */
 .left {
   min-height: 0;
   display: grid;
-  gap: 16px;
-
-  /* ✅ 핵심: 아래(시간표)를 "최대 500"으로 두되, 세로가 부족하면 줄어들게 */
-  grid-template-rows: 1fr minmax(280px, 500px);
+  gap: clamp(12px, 1.2vw, 16px);
+  grid-template-rows: minmax(200px, 30%) minmax(0, 1fr);
 }
 
+/* 왼쪽 위 2칸 */
 .leftTop {
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr minmax(280px, 22vw);
-  gap: 12px;
-  align-items: stretch;
+  gap: clamp(12px, 1.2vw, 16px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 34%);
 }
 
-.leftTop > * {
-  min-height: 0;
-}
-
+/* 왼쪽 아래 */
 .leftBottom {
   min-height: 0;
-  overflow: hidden; /* 시간표 패널 내부에서 스크롤되게 */
+  display: grid;
 }
 
-.leftBottom > * {
-  height: 100%;
-  min-height: 0;
-}
-
+/* 오른쪽 전체 */
 .right {
   min-height: 0;
   display: grid;
-  gap: 16px;
-
-  /* ✅ 세로가 부족하면 위 두 패널이 줄고(내부 스크롤), 마지막은 220 상한 */
-  grid-template-rows:
-    minmax(220px, 1fr)
-    minmax(220px, 1fr)
-    minmax(220px, 220px);
-
-  font-size: 13px;
+  gap: clamp(12px, 1.2vw, 16px);
+  grid-template-rows: minmax(240px, 1fr) minmax(240px, 1fr);
 }
 
-.right > * {
+/* 공통 카드 패널 느낌 */
+.panel {
   min-height: 0;
-}
-
-.notionBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
   background: #ffffff;
-  text-decoration: none;
-  color: #111827;
-  font-weight: 600;
-  font-size: 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
 }
 
-.notionBtn:hover {
-  background: #f1f5f9;
+/* 내부 스크롤이 필요한 패널에 사용 */
+.scrollPanel {
+  min-height: 0;
+  overflow: auto;
 }
 
+/* 상단 오른쪽 버튼 묶음 */
 .topRightButtons {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-/* ✅ 창이 “전체화면이 아닌 정도로” 더 낮아지면: 페이지 세로 스크롤 허용 */
-@media (max-height: 700px) {
-  .page {
-    overflow: auto;
-  }
+/* 노션/이동 버튼 공통 */
+.notionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(34px, 3vw, 38px);
+  padding: 0 clamp(12px, 1vw, 14px);
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: clamp(12px, 0.9vw, 13px);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-/* ✅ 가로가 너무 좁으면 1열(이건 너 원래 요구) */
-@media (max-width: 1200px) {
+.notionBtn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.notionBtn:active {
+  transform: translateY(0);
+}
+
+/* 제목류 공통으로 쓰고 싶으면 */
+.sectionTitle {
+  font-size: clamp(15px, 1.1vw, 18px);
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.sectionSub {
+  font-size: clamp(12px, 0.9vw, 14px);
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* 본문 작은 텍스트 */
+.bodyText {
+  font-size: clamp(13px, 0.95vw, 15px);
+  color: #374151;
+  line-height: 1.5;
+}
+
+/* 태그/뱃지 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: clamp(11px, 0.8vw, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 버튼 공통 */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(34px, 3vw, 40px);
+  padding: 0 clamp(12px, 1vw, 16px);
+  border: none;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: clamp(12px, 0.9vw, 14px);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.16);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ===== 반응형 ===== */
+
+/* 더 좁아질 때 */
+@media (max-width: 920px) {
   .page {
-    overflow: auto;
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .grid {
     grid-template-columns: 1fr;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
   }
 
   .left {
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    grid-template-rows: none;
   }
 
   .leftTop {
+    display: grid;
     grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .leftBottom {
+    min-height: auto;
   }
 
   .right {
-    grid-template-rows: auto;
-    overflow: visible;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(220px, 40vh));
+    min-height: auto;
+  }
+
+  .panel {
+    min-height: 280px;
+    max-height: 52vh;
+    overflow: hidden;
+  }
+
+  .scrollPanel {
+    min-height: 0;
+    max-height: 52vh;
+    overflow: auto;
+  }
+}
+
+/* 아주 작은 화면 */
+@media (max-width: 560px) {
+  .page {
+    height: auto;
+    min-height: 100vh;
+    padding: 12px;
+    gap: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .topRightButtons {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .notionBtn {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 11px;
+    border-radius: 9px;
+  }
+
+  .right {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(220px, 40vh));
+  }
+
+  .panel {
+    min-height: 300px;
+    max-height: 58vh;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .scrollPanel {
+    min-height: 0;
+    max-height: 58vh;
+    overflow: auto;
   }
 }
