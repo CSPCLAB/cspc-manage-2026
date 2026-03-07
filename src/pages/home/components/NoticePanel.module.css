@@ -48,3 +48,10 @@
   line-height: 1.4;
   font-size: 14px;
 }
+
+@media (max-width: 920px) {
+  .panelFull {
+    max-height: 40vh;
+    overflow: auto;
+  }
+}

@@ -208,7 +208,6 @@
   .leftTop {
     display: grid;
     grid-template-columns: 1fr;
-    min-height: auto;
   }
 
   .leftBottom {

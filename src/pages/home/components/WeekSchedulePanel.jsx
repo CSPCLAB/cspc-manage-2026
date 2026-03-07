@@ -13,21 +13,8 @@ const PERIODS = [
   { key: 6, label: "6교시", start: "16:30", end: "17:45" },
 ];
 
-const DAY_TO_INDEX = {
-  월: 0,
-  화: 1,
-  수: 2,
-  목: 3,
-  금: 4,
-  토: 5,
-  일: 6,
-};
-
-function dayIndexFromKoreanDay(dayOfWeek) {
-  if (!dayOfWeek) return null;
-  // "월요일" -> "월"
-  const key = String(dayOfWeek).trim().charAt(0);
-  return DAY_TO_INDEX[key] ?? null;
+function keyOf(dayIndex, periodKey) {
+  return `${dayIndex}-${periodKey}`;
 }
 
 function hexToRgba(hex, alpha = 0.12) {
@@ -59,21 +46,36 @@ function getPeriodWindow(baseDate, period) {
   return { startAt: s, endAt: e };
 }
 
-function keyOf(dayIndex, periodKey) {
-  return `${dayIndex}-${periodKey}`;
-}
-
 function normalizeName(s) {
   return (s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError }) {
-  const [week, setWeek] = useState(1);
+export default function WeekSchedulePanel({
+  adminPool,
+  loadingAdmins,
+  adminError,
+  week,
+  onChangeWeek,
+  cells: externalCells,
+  setCellsForWeek,
+  loadingSchedule,
+  scheduleError,
+}) {
 
   const [isEdit, setIsEdit] = useState(false);
-  const [cells, setCells] = useState([]);
-  const [originalCells, setOriginalCells] = useState([]);
+  const [cells, setCells] = useState(externalCells ?? []);
+  const [originalCells, setOriginalCells] = useState(externalCells ?? []);
   const [draftInputs, setDraftInputs] = useState({});
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
+  useEffect(() => {
+    setCells(externalCells ?? []);
+    setOriginalCells(externalCells ?? []);
+    setIsEdit(false);
+    setDraftInputs({});
+    setSuggestOpenFor(null);
+    setHighlightIndex(0);
+  }, [week, externalCells]);
 
   const [suggestOpenFor, setSuggestOpenFor] = useState(null);
   const [highlightIndex, setHighlightIndex] = useState(0);
@@ -86,168 +88,6 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  const [scheduleCache, setScheduleCache] = useState({});
-  const [loadingSchedule, setLoadingSchedule] = useState(false);
-  const [scheduleError, setScheduleError] = useState(null);
-  const [savingSchedule, setSavingSchedule] = useState(false);
-
-  function buildFilledCells(schedules, adminPool) {
-    const nextCells = (schedules ?? [])
-      .map((s) => {
-        const slot = s?.Timetable_Slots;
-        const dayIndex = dayIndexFromKoreanDay(slot?.day_of_week);
-        const periodKey = Number(slot?.period_number);
-
-        if (dayIndex == null || !Number.isFinite(periodKey)) return null;
-
-        const weeklyId = s?.id ?? null;
-        const assignedId = s?.assigned_admin_id != null ? s.assigned_admin_id : null;
-        const defaultId = slot?.default_admin_id != null ? slot.default_admin_id : null;
-        const isSub = Boolean(s?.is_substitute);
-
-        const fromPool = (adminId) =>
-          adminId != null ? adminPool.find((a) => a.id === adminId) : null;
-
-        const assignedUser = fromPool(assignedId);
-        const defaultUser = fromPool(defaultId);
-
-        const admin =
-          assignedUser == null
-            ? null
-            : {
-                id: assignedUser.id,
-                name: assignedUser.name,
-                color: assignedUser.color_hex ?? assignedUser.color,
-              };
-
-        const defaultAdmin =
-          defaultUser == null
-            ? null
-            : {
-                id: defaultUser.id,
-                name: defaultUser.name,
-                color: defaultUser.color_hex ?? defaultUser.color,
-              };
-
-        return {
-          weeklyId,
-          dayIndex,
-          periodKey,
-          admin,               // 현재 화면에 표시할 관리자
-          defaultAdmin,        // 기본 담당자
-          assignedAdminId: assignedId, // 실제 DB override 값
-          defaultAdminId: defaultId,
-          isSub,
-        };
-      })
-      .filter(Boolean);
-
-    const filled = [];
-    const mapFromApi = new Map(nextCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c]));
-
-    for (let d = 0; d < DAYS.length; d++) {
-      for (let p = 0; p < PERIODS.length; p++) {
-        const k = keyOf(d, PERIODS[p].key);
-        filled.push(
-          mapFromApi.get(k) ?? {
-            weeklyId: null,
-            dayIndex: d,
-            periodKey: PERIODS[p].key,
-            admin: null,
-            defaultAdmin: null,
-            assignedAdminId: null,
-            defaultAdminId: null,
-            isSub: false,
-          }
-        );
-      }
-    }
-
-    return filled;
-  }
-
-  async function fetchWeekSchedule(week, pool) {
-    
-    const res = await fetch(`/api/schedules/${week}`);
-    const payload = await res.json().catch(() => null);
-
-    if (!res.ok || !payload?.success) {
-      throw new Error(payload?.message || `${week}주차 시간표 불러오기 실패`);
-    }
-    const schedules = payload?.data?.schedules ?? [];
-    return buildFilledCells(schedules, pool);
-  }
-
-  // 1. 현재 week 먼저 fetch해서 바로 보여줌
-  // 2. 동시에 1~16주 나머지 캐시 쌓기 (현재 week 제외)
-  useEffect(() => {
-    if (!adminPool.length) return;
-
-    let alive = true;
-
-    const fetchSchedules = async () => {
-      setLoadingSchedule(true);
-      setScheduleError(null);
-
-      try {
-        const firstWeekCells = await fetchWeekSchedule(week, adminPool);
-
-        if (!alive) return;
-
-        setScheduleCache((prev) => ({
-          ...prev,
-          [week]: firstWeekCells,
-        }));
-
-        setCells(firstWeekCells);
-        setOriginalCells(firstWeekCells);
-
-        const weeks = Array.from({ length: 16 }, (_, i) => i + 1).filter((w) => w !== week);
-
-        Promise.all(
-          weeks.map(async (w) => {
-            const cells = await fetchWeekSchedule(w, adminPool);
-            return [w, cells];
-          })
-        )
-          .then((results) => {
-            if (!alive) return;
-            setScheduleCache((prev) => ({
-              ...prev,
-              ...Object.fromEntries(results),
-            }));
-          })
-          .catch(() => {
-            // 나머지 프리로드 실패는 치명적이지 않게 무시 가능
-          });
-      } catch (e) {
-        if (!alive) return;
-        setScheduleError(e?.message || "시간표 불러오기 오류");
-      } finally {
-        if (!alive) return;
-        setLoadingSchedule(false);
-      }
-    };
-
-    fetchSchedules();
-
-    return () => {
-      alive = false;
-    };
-  }, [adminPool]);
-
-  // 주차 변경
-  useEffect(() => {
-    if (!scheduleCache[week]) return;
-
-    setCells(scheduleCache[week]);
-    setOriginalCells(scheduleCache[week]);
-    setIsEdit(false);
-    setDraftInputs({});
-    setSuggestOpenFor(null);
-    setHighlightIndex(0);
-  }, [week, scheduleCache]);
 
   const { exactMap, adminById, candidates } = useMemo(() => {
     const byId = new Map();
@@ -503,13 +343,9 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
           return payload;
         })
       );
-
       setCells(nextCells);
       setOriginalCells(nextCells);
-      setScheduleCache((prev) => ({
-        ...prev,
-        [week]: nextCells,
-      }));
+      setCellsForWeek(nextCells);
       resetEditUI();
     } catch (e) {
       window.alert(e?.message || "시간표 저장 중 오류가 발생했어요.");
@@ -535,7 +371,7 @@ export default function WeekSchedulePanel({ adminPool, loadingAdmins, adminError
       const ok = window.confirm("변경사항이 있어요. 저장하지 않고 이동할까요?");
       if (!ok) return;
     }
-    setWeek(nextWeek);
+    onChangeWeek(nextWeek);
   }
 
   const todayIndex = useMemo(() => {
