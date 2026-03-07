@@ -56,6 +56,8 @@ function buildFilledCells(schedules, adminPool) {
       if (dayIndex == null || !Number.isFinite(periodKey)) return null;
 
       const weeklyId = s?.id ?? null;
+      const slotId = slot?.id ?? null;
+
       const assignedId = s?.assigned_admin_id != null ? s.assigned_admin_id : null;
       const defaultId = slot?.default_admin_id != null ? slot.default_admin_id : null;
       const isSub = Boolean(s?.is_substitute);
@@ -73,6 +75,7 @@ function buildFilledCells(schedules, adminPool) {
               id: assignedUser.id,
               name: assignedUser.name,
               color: assignedUser.color_hex ?? assignedUser.color,
+              late_count: assignedUser.late_count ?? 0,
             };
 
       const defaultAdmin =
@@ -86,11 +89,15 @@ function buildFilledCells(schedules, adminPool) {
 
       return {
         weeklyId,
+        slotId,
         dayIndex,
         periodKey,
-        admin,               // 현재 화면에 표시할 관리자
-        defaultAdmin,        // 기본 담당자
-        assignedAdminId: assignedId, // 실제 DB override 값
+        startTime: slot?.start_time ?? null,
+        endTime: slot?.end_time ?? null,
+        periodLabel: Number.isFinite(periodKey) ? `${periodKey}교시` : "",
+        admin,
+        defaultAdmin,
+        assignedAdminId: assignedId,
         defaultAdminId: defaultId,
         isSub,
       };
@@ -106,8 +113,12 @@ function buildFilledCells(schedules, adminPool) {
       filled.push(
         mapFromApi.get(k) ?? {
           weeklyId: null,
+          slotId: null,
           dayIndex: d,
           periodKey: PERIODS[p].key,
+          startTime: null,
+          endTime: null,
+          periodLabel: `${PERIODS[p].key}교시`,
           admin: null,
           defaultAdmin: null,
           assignedAdminId: null,
@@ -117,6 +128,7 @@ function buildFilledCells(schedules, adminPool) {
       );
     }
   }
+
   return filled;
 }
 

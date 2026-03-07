@@ -3,14 +3,6 @@ import Panel from "../../../components/layout/Panel";
 import styles from "./AdminAuthPanel.module.css";
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
-const PERIODS = [
-  { key: 1, label: "1교시", start: "09:00", end: "10:15" },
-  { key: 2, label: "2교시", start: "10:30", end: "11:45" },
-  { key: 3, label: "3교시", start: "12:00", end: "13:15" },
-  { key: 4, label: "4교시", start: "13:30", end: "14:45" },
-  { key: 5, label: "5교시", start: "15:00", end: "16:15" },
-  { key: 6, label: "6교시", start: "16:30", end: "17:45" },
-];
 
 function keyOf(dayIndex, periodKey) {
   return `${dayIndex}-${periodKey}`;
@@ -40,17 +32,6 @@ function parseHHMMToDate(baseDate, hhmm) {
   );
 }
 
-function getPeriodWindow(baseDate, period) {
-  const s = parseHHMMToDate(baseDate, period.start);
-  let e = parseHHMMToDate(baseDate, period.end);
-
-  if (!s) return null;
-  if (!e) e = new Date(s.getTime() + 120 * 60 * 1000);
-  if (e <= s) e = new Date(s.getTime() + 75 * 60 * 1000);
-
-  return { startAt: s, endAt: e };
-}
-
 function addMinutes(date, mins) {
   return new Date(date.getTime() + mins * 60 * 1000);
 }
@@ -78,42 +59,46 @@ export default function AdminAuthPanel({
     return () => clearInterval(t);
   }, []);
 
-  const cellMap = useMemo(() => {
-    const m = new Map();
-    cells.forEach((c) => {
-      m.set(keyOf(c.dayIndex, c.periodKey), c);
-    });
-    return m;
-  }, [cells]);
-
   const todayIndex = useMemo(() => {
-    const js = now.getDay(); // 0=일..6=토
-    return (js + 6) % 7; // 월=0..일=6
+    const js = now.getDay();
+    return (js + 6) % 7;
   }, [now]);
-
-  const currentPeriod = useMemo(() => {
-    for (const p of PERIODS) {
-      const w = getPeriodWindow(now, p);
-      if (!w) continue;
-      if (now >= w.startAt && now <= w.endAt) {
-        return { period: p, ...w };
-      }
-    }
-    return null;
-  }, [now]);
-
-  const currentCellKey = useMemo(() => {
-    if (!currentPeriod) return null;
-    return keyOf(todayIndex, currentPeriod.period.key);
-  }, [todayIndex, currentPeriod]);
 
   const currentCell = useMemo(() => {
-    if (!currentCellKey) return null;
-    return cellMap.get(currentCellKey) ?? null;
-  }, [cellMap, currentCellKey]);
+    const todayCells = cells.filter((c) => c.dayIndex === todayIndex);
+
+    for (const cell of todayCells) {
+      if (!cell?.startTime || !cell?.endTime) continue;
+
+      const startAt = parseHHMMToDate(now, cell.startTime);
+      let endAt = parseHHMMToDate(now, cell.endTime);
+
+      if (!startAt) continue;
+      if (!endAt || endAt <= startAt) {
+        endAt = new Date(startAt.getTime() + 75 * 60 * 1000);
+      }
+
+      const endWindowAt = addMinutes(endAt, 10);
+
+      if (now >= startAt && now <= endWindowAt) {
+        return {
+          ...cell,
+          startAt,
+          endAt,
+        };
+      }
+    }
+
+    return null;
+  }, [cells, todayIndex, now]);
+
+  const currentCellKey = useMemo(() => {
+    if (!currentCell) return null;
+    return keyOf(currentCell.dayIndex, currentCell.periodKey);
+  }, [currentCell]);
 
   const currentAdmin = currentCell?.admin ?? null;
-  const hasActiveAssignment = Boolean(currentPeriod && currentAdmin);
+  const hasActiveAssignment = Boolean(currentCell && currentAdmin);
 
   useEffect(() => {
     setAttendanceId(null);
@@ -122,33 +107,33 @@ export default function AdminAuthPanel({
   }, [week, currentCellKey]);
 
   const startEnabled = useMemo(() => {
-    if (!currentPeriod || !currentAdmin || attendanceId) return false;
+    if (!currentCell || !currentAdmin || attendanceId) return false;
 
-    const end = addMinutes(currentPeriod.startAt, 10);
-    return inWindow(now, currentPeriod.startAt, end);
-  }, [now, currentPeriod, currentAdmin, attendanceId]);
+    const end = addMinutes(currentCell.startAt, 10);
+    return inWindow(now, currentCell.startAt, end);
+  }, [now, currentCell, currentAdmin, attendanceId]);
 
   const endEnabled = useMemo(() => {
-    if (!currentPeriod || !currentAdmin || !attendanceId) return false;
+    if (!currentCell || !currentAdmin || !attendanceId) return false;
 
-    const s = addMinutes(currentPeriod.endAt, -10);
-    const e = addMinutes(currentPeriod.endAt, 10);
+    const s = addMinutes(currentCell.endAt, -10);
+    const e = addMinutes(currentCell.endAt, 10);
     return inWindow(now, s, e);
-  }, [now, currentPeriod, currentAdmin, attendanceId]);
+  }, [now, currentCell, currentAdmin, attendanceId]);
 
   const isLate = useMemo(() => {
-    if (!currentPeriod || !currentAdmin || attendanceId) return false;
+    if (!currentCell || !currentAdmin || attendanceId) return false;
 
-    const lateTime = addMinutes(currentPeriod.startAt, 10);
-    return now > lateTime && now <= currentPeriod.endAt;
-  }, [now, currentPeriod, currentAdmin, attendanceId]);
+    const lateTime = addMinutes(currentCell.startAt, 10);
+    return now > lateTime && now <= currentCell.endAt;
+  }, [now, currentCell, currentAdmin, attendanceId]);
 
   const endLate = useMemo(() => {
-    if (!currentPeriod || !currentAdmin || !attendanceId) return false;
+    if (!currentCell || !currentAdmin || !attendanceId) return false;
 
-    const lateEnd = addMinutes(currentPeriod.endAt, 10);
+    const lateEnd = addMinutes(currentCell.endAt, 10);
     return now > lateEnd;
-  }, [now, currentPeriod, currentAdmin, attendanceId]);
+  }, [now, currentCell, currentAdmin, attendanceId]);
 
   async function markLate() {
     if (!currentAdmin?.id || lateMarked) return;
@@ -257,8 +242,8 @@ export default function AdminAuthPanel({
   }
 
   const periodText =
-    hasActiveAssignment && currentPeriod
-      ? `${DAYS[todayIndex]} ${currentPeriod.period.label}`
+    hasActiveAssignment && currentCell
+      ? `${DAYS[todayIndex]} ${currentCell.periodLabel || `${currentCell.periodKey}교시`}`
       : "관리 시간 아님";
 
   return (
@@ -272,7 +257,7 @@ export default function AdminAuthPanel({
               {periodText}
             </span>
             {hasActiveAssignment && isLate && (
-              <span className={styles.lateText}>지각</span>
+              <span className={styles.lateBadge}>지각</span>
             )}
           </div>
         </div>
@@ -316,21 +301,21 @@ export default function AdminAuthPanel({
           </button>
         </div>
 
-        {hasActiveAssignment && currentPeriod && (
+        {hasActiveAssignment && currentCell && (
           <div className={styles.windows}>
             <div className={styles.winLine}>
               <span className={styles.winLabel}>시작</span>
               <span className={styles.winValue}>
-                {toHHMM(currentPeriod.startAt)}~
-                {toHHMM(addMinutes(currentPeriod.startAt, 10))}
+                {toHHMM(currentCell.startAt)}~
+                {toHHMM(addMinutes(currentCell.startAt, 10))}
               </span>
             </div>
 
             <div className={styles.winLine}>
               <span className={styles.winLabel}>끝</span>
               <span className={styles.winValue}>
-                {toHHMM(addMinutes(currentPeriod.endAt, -10))}~
-                {toHHMM(addMinutes(currentPeriod.endAt, 10))}
+                {toHHMM(addMinutes(currentCell.endAt, -10))}~
+                {toHHMM(addMinutes(currentCell.endAt, 10))}
               </span>
             </div>
           </div>
@@ -338,7 +323,6 @@ export default function AdminAuthPanel({
 
         {loadingSchedule && <div className={styles.message}>시간표 불러오는 중...</div>}
         {scheduleError && <div className={styles.message}>{String(scheduleError)}</div>}
-        {actionMessage && <div className={styles.message}>{actionMessage}</div>}
       </div>
     </Panel>
   );

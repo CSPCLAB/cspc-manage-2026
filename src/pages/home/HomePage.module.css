@@ -24,7 +24,7 @@
   min-height: 0;
   display: grid;
   gap: clamp(12px, 1.2vw, 16px);
-  grid-template-rows: minmax(200px, 30%) minmax(0, 1fr);
+  grid-template-rows: minmax(240px, 30%) minmax(0, 1fr);
 }
 
 /* 왼쪽 위 2칸 */
