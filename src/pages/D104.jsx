@@ -119,14 +119,60 @@ export default function D104() {
         );
         if (ignore) return;
         setComputers(allComps);
-        setRepairLogs(
-          Array.isArray(reportsArr)
-            ? reportsArr.map((r) => ({
+
+        // 1) If the location API already returned reports, use them first.
+        let initialReports = Array.isArray(reportsArr)
+          ? reportsArr.map((r) => ({
+              ...r,
+              createdAt: r.createdAt || r.created_at,
+            }))
+          : [];
+
+        // 2) Front-end fallback: eagerly fetch every computer's detail endpoint
+        //    so the "전체 요청" list is populated as soon as the page opens.
+        const dbIds = compArr
+          .map((c) => c?.id)
+          .filter((id) => typeof id === "number" || typeof id === "string");
+
+        if (dbIds.length > 0) {
+          const detailResults = await Promise.allSettled(
+            dbIds.map((id) => fetchApi(`/api/lab/${id}`))
+          );
+
+          const fetchedReports = [];
+
+          for (const result of detailResults) {
+            if (result.status !== "fulfilled") continue;
+            const data = result.value;
+
+            let detailReports = [];
+            if (Array.isArray(data?.reports)) {
+              detailReports = data.reports;
+            } else if (Array.isArray(data?.data?.reports)) {
+              detailReports = data.data.reports;
+            }
+
+            for (const r of detailReports) {
+              fetchedReports.push({
                 ...r,
                 createdAt: r.createdAt || r.created_at,
-              }))
-            : []
-        );
+              });
+            }
+          }
+
+          // Merge + dedupe by report id (fallback key if id is missing)
+          const merged = [...initialReports, ...fetchedReports];
+          const seen = new Set();
+          initialReports = merged.filter((r) => {
+            const key = r?.id ?? `${r?.computer_id}-${r?.title}-${r?.createdAt}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        }
+
+        if (ignore) return;
+        setRepairLogs(initialReports);
       } catch (e) {
         // Optionally: error UI
         if (ignore) return;
