@@ -647,14 +647,20 @@ export default function D104() {
       borderRadius: 12,
       padding: 12,
       flex: 1,
-      overflow: "visible",
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0,
+      overflow: "hidden",
+      boxSizing: "border-box",
     },
 
     roomScroll: {
       position: "relative",
       flex: 1,
-      overflow: "auto",
       minHeight: 0,
+      overflowY: "auto",
+      overflowX: "hidden",
+      boxSizing: "border-box",
     },
 
     grid: {
