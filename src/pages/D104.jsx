@@ -515,15 +515,14 @@ export default function D104() {
 
   const styles = {
     page: {
-      height: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
+      minHeight: "100vh",
       background: C.bg,
       padding: 14,
       boxSizing: "border-box",
       fontFamily: "inherit",
       color: C.text,
+      overflowX: "hidden",
+      overflowY: "auto",
     },
 
     topBar: {
@@ -598,8 +597,6 @@ export default function D104() {
       gridTemplateColumns: "1fr 360px",
       gap: 12,
       alignItems: "start",
-      flex: 1,
-      minHeight: 0,
     },
 
     card: {
@@ -610,16 +607,11 @@ export default function D104() {
       color: C.text,
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
+      overflow: "visible",
     },
 
     leftWrap: {
       padding: 14,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
     },
 
     leftHeader: {
@@ -646,19 +638,12 @@ export default function D104() {
       border: `1px solid ${C.border}`,
       borderRadius: 12,
       padding: 12,
-      flex: 1,
-      minHeight: 0,
-      overflowY: "auto",
-      overflowX: "hidden",
       boxSizing: "border-box",
-      overscrollBehavior: "contain",
-      WebkitOverflowScrolling: "touch",
+      overflow: "visible",
     },
 
     roomScroll: {
       position: "relative",
-      minHeight: "fit-content",
-      overflow: "visible",
       boxSizing: "border-box",
     },
 
@@ -718,10 +703,6 @@ export default function D104() {
 
     formWrap: {
       padding: 14,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
     },
 
     infoCard: {
