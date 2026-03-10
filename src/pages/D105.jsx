@@ -1186,7 +1186,7 @@ export default function D105() {
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                           <span style={styles.timeText}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</span>
                           <button type="button" onClick={() => deleteReport(r.id)} style={styles.smallBtn}>
-                            삭제
+                            x
                           </button>
                         </div>
                       </div>
