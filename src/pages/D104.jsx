@@ -870,6 +870,12 @@ export default function D104() {
         background: t.bg,
         color: t.fg,
         letterSpacing: "0.2px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        whiteSpace: "nowrap",
+        lineHeight: 1,
+        flexShrink: 0,
       };
     },
 
@@ -1315,7 +1321,7 @@ export default function D104() {
                             style={styles.smallBtn}
                             title="이 요청 삭제"
                           >
-                            삭제
+                            x
                           </button>
                         </div>
                       </div>
