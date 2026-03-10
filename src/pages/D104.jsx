@@ -263,6 +263,14 @@ export default function D104() {
     [computers, selectedSeatNumber]
   );
 
+  const seatNumberByDbId = useMemo(() => {
+    const map = {};
+    for (const c of computers) {
+      if (c?.id != null) map[c.id] = c.computer_number;
+    }
+    return map;
+  }, [computers]);
+
   const updateSelectedComputer = (patch) => {
     setComputers((prev) =>
       prev.map((c) =>
@@ -1294,7 +1302,9 @@ export default function D104() {
                     <div key={r.id} style={styles.item}>
                       <div style={styles.itemTop}>
                         <div style={styles.badgeRow}>
-                          <span style={styles.badge("gray")}>PC {r.computer_id}</span>
+                          <span style={styles.badge("gray")}>
+                            PC {seatNumberByDbId[r.computer_id] ?? r.computer_id}
+                          </span>
                           <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
