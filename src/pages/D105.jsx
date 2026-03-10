@@ -755,6 +755,12 @@ export default function D105() {
         background: t.bg,
         color: t.fg,
         letterSpacing: "0.2px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        whiteSpace: "nowrap",
+        lineHeight: 1,
+        flexShrink: 0,
       };
     },
     itemTitle: {
@@ -1147,7 +1153,7 @@ export default function D105() {
 
                 <div style={styles.field}>
                   <div style={styles.label}>요청 내용</div>
-                  <input
+                  <input 
                     value={requestText}
                     onChange={(e) => setRequestText(e.target.value)}
                     style={styles.input}
