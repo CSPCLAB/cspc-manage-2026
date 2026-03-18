@@ -1,57 +1,685 @@
 .page {
-  height: 100vh;
-  padding: 12px;
+  min-height: 100vh;
+  padding: 20px;
   box-sizing: border-box;
   background: #f8fafc;
+}
+
+.topBar {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.title {
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 900;
+  color: #111827;
+}
+
+.sub {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.linkBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+  text-decoration: none;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.linkBtn:hover {
+  background: #f1f5f9;
+}
+
+.layout {
+  display: grid;
+  gap: 16px;
+}
+
+.sectionCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sectionEyebrow {
+  font-size: 11px;
+  font-weight: 900;
+  color: #64748b;
+  letter-spacing: 0.08em;
+}
+
+.sectionTitle {
+  margin: 4px 0 0;
+  font-size: 22px;
+  line-height: 1.25;
+  color: #111827;
+}
+
+.sectionDesc {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.statusBadge,
+.countBadge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.statusPending {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.statusReady {
+  background: #ecfdf5;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.countBadge {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #b3bcc8;
+}
+
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+.subCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fbfdff;
+  padding: 16px;
+}
+
+.subCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.subCardTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.helperText {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.card {
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.input,
+.select {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0 12px;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: #111827;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: #bcbdbe;
+  box-shadow: 0 0 0 4px rgba(147, 197, 253, 0.2);
+}
+
+.primaryBtn,
+.secondaryBtn,
+.smallDangerBtn {
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.primaryBtn {
+  height: 42px;
+  padding: 0 14px;
+  background: #111827;
+  color: #ffffff;
+}
+
+.primaryBtn:hover {
+  opacity: 0.92;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.secondaryBtn {
+  height: 40px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dbe2ea;
+}
+
+.secondaryBtn:hover {
+  background: #f8fafc;
+}
+
+.smallDangerBtn {
+  height: 36px;
+  padding: 0 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.submitRow {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summaryBox {
   flex: 1;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.summaryTitle {
+  font-size: 13px;
+  font-weight: 900;
+  color: #334155;
+}
+
+.summaryText {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.assignPanel {
+  margin-bottom: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.assignTitle {
+  font-size: 13px;
+  font-weight: 900;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.memberBadgeWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.memberBadgeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.memberBadgeBtn:hover {
+  transform: translateY(-1px);
+}
+
+.memberBadgeBtnActive {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+.memberBadgeDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.currentAssignInfo {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.scheduleTableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.scheduleMatrix {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px;
+  min-width: 880px;
+}
+
+.scheduleMatrix th {
+  text-align: center;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 8px;
+}
+
+.cornerCell {
+  width: 80px;
+}
+
+.periodHeader {
+  width: 80px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.scheduleCell {
+  width: 100%;
+  min-height: 66px;
+  border-radius: 16px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: 0.15s ease;
+  box-sizing: border-box;
+}
+
+.scheduleCell:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.scheduleCellEmpty {
+  border-style: dashed;
+}
+
+.scheduleCellFilled {
+  border-style: solid;
+}
+
+.cellColorBar {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  border-radius: 999px;
+}
+
+.cellName {
+  font-size: 14px;
+  font-weight: 900;
+  color: #111827;
+  padding-left: 10px;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.cellPlaceholder {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.helperFoot {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.memberGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  gap: 14px;
+}
+
+.sideStack {
+  display: grid;
+  gap: 14px;
+}
+
+.memberList,
+.logList,
+.apiTodoList {
+  display: grid;
+  gap: 10px;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   background: #ffffff;
   padding: 12px;
 }
 
-.link {
+.memberInfo {
+  min-width: 0;
+}
+
+.memberNameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memberColorChip {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.memberName {
+  font-size: 15px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.memberMeta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+  word-break: break-all;
+}
+
+.colorChartBox {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.colorChartTitle {
+  font-size: 13px;
+  font-weight: 900;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.colorChartGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.colorSwatch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.colorSwatch:hover {
+  background: #f8fafc;
+}
+
+.colorSwatchSelected {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.12);
+}
+
+.colorPreview {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex: 0 0 auto;
+}
+
+.colorCode {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+  word-break: break-all;
+}
+
+.nextColorPreview {
+  font-size: 13px;
+  color: #475569;
+}
+
+.fieldError {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.emptyColorText {
+  grid-column: 1 / -1;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.apiTodoItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.logItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.logTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.logLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logMemberDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.logName {
+  font-size: 15px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.logDate {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.logStatusRow {
+  margin-top: 10px;
+}
+
+.logStatusBadge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  text-decoration: none;
-  color: #111827;
-  font-weight: 700;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
   font-size: 12px;
+  font-weight: 900;
 }
 
-.link:hover {
-  background: #f1f5f9;
+.logStatusNormal {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
-.grid {
+.logStatusLate {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.logInfoGrid {
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 12px; 
-  align-items: start;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
-.label {
-  display: flex;
-  gap: 6px;   /* ← 이게 “이름”과 input 사이 여백 */
+
+.logInfoBox {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 12px;
 }
-@media (max-width: 980px) {
-  .grid {
+
+.logInfoLabel {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.logInfoValue {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #111827;
+  font-weight: 900;
+}
+
+.emptyBox {
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 18px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .memberGrid,
+  .logInfoGrid,
+  .formGrid {
     grid-template-columns: 1fr;
   }
 }
 
-/* 오른쪽 로그 카드만 세로 확장 */
-.grid > .card:last-child {
-  min-height: 600px;
+@media (max-width: 980px) {
+  .topBar,
+  .sectionHeader,
+  .submitRow,
+  .subCardTop,
+  .logTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .memberGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .colorChartGrid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -2,709 +2,833 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./AdminPage.module.css";
 
-export default function AdminPage() {
-  const ENV_API_BASE = import.meta.env.VITE_API_BASE_URL || ""; // 예: http://localhost:3000 또는 https://xxx.supabase.co/functions/v1
-  const [apiBase, setApiBase] = useState(ENV_API_BASE);
-  const effectiveBase = (apiBase || "").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
-  const [busy, setBusy] = useState(false);
-  const [log, setLog] = useState("");
-                 
-  // ====== 개강/종강 입력(주차 생성) 폼 ======
-  const [semesterStart, setSemesterStart] = useState(""); // YYYY-MM-DD
-  const [semesterEnd, setSemesterEnd] = useState(""); // 종강일(선택) YYYY-MM-DD
-  const [weekCount, setWeekCount] = useState(16);
+const API_ENDPOINTS = {
+  resetSemester: "/api/admin/schedules/init",
+  setupAcademicCalendar: "/api/admin/setup-weeks",
+  updateDefaultScheduleManager: "/api/admin/schedules/manager",
 
-  // ====== 학회원 추가 폼 ======
-  const [newUser, setNewUser] = useState({
-    name: "",
+  getAllAdmins: "/api/users",
+  getAdminDetail: (id) => `/api/users/${id}`,
+  updateAdminInfo: (id) => `/api/users/${id}`,
+  getAdminLogs: (id) => `/api/users/${id}/logs`,
+
+  createAdmin: "/api/admin/users",
+  deleteAdmin: (id) => `/api/admin/users/${id}`,
+};
+
+async function api(path, options = {}) {
+  const url = API_BASE ? `${API_BASE}${path}` : path;
+
+  const res = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
   });
 
-  // ====== 학회원 삭제 폼 ======
-  const [deleteUserName, setDeleteUserName] = useState("");
+  const result = await res.json().catch(() => null);
 
-  // ====== 학회원 목록 ======
-  const [users, setUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(false);
+  if (!res.ok || result?.success === false) {
+    throw new Error(result?.message || "API 요청에 실패했습니다.");
+  }
 
-  // ====== 학회원 컬러 풀(프론트에서만 사용, UI에는 표시하지 않음) ======
-  const USER_COLOR_POOL = [
-    "#ef4444", // red
-    "#f97316", // orange
-    "#f59e0b", // amber
-    "#84cc16", // lime
-    "#22c55e", // green
-    "#14b8a6", // teal
-    "#06b6d4", // cyan
-    "#3b82f6", // blue
-    "#6366f1", // indigo
-    "#a855f7", // purple
-    "#ec4899", // pink
-  ];
+  return result;
+}
 
-  const pickUserColor = (currentUsers) => {
-    const used = new Set(
-      (currentUsers || [])
-        .map((u) => u.color ?? u.user_color ?? u.userColor)
-        .filter(Boolean)
-    );
+const DAYS = [
+  { key: "mon", label: "월" },
+  { key: "tue", label: "화" },
+  { key: "wed", label: "수" },
+  { key: "thu", label: "목" },
+  { key: "fri", label: "금" },
+  { key: "sat", label: "토" },
+  { key: "sun", label: "일" },
+];
 
-    // 1) 안 쓰는 컬러가 있으면 그 중 첫 번째
-    const available = USER_COLOR_POOL.find((c) => !used.has(c));
-    if (available) return available;
+const PERIODS = [1, 2, 3, 4, 5, 6];
 
-    // 2) 다 찼으면 그냥 순환(중복 허용)
-    const idx = (currentUsers?.length ?? 0) % USER_COLOR_POOL.length;
-    return USER_COLOR_POOL[idx];
-  };
-  // ====== 유저 로그(학회원별) ======
-  const [selectedLogUserId, setSelectedLogUserId] = useState("");
-  const [selectedLogDate, setSelectedLogDate] = useState(""); // YYYY-MM-DD
-  const [userLogs, setUserLogs] = useState("");
-  const [userLogsLoading, setUserLogsLoading] = useState(false);
+const USER_COLOR_POOL = [
+  "#DC143C",
+  "#ed673a",
+  "#f5ab2a",
+  "#faf687",
+  "#9ACD32",
+  "#58b2b5",
+  "#20b4dd",
+  "#4682B4",
+  "#262694",
+  "#483D8B",
+  "#9370DB",
+  "#db388f",
+  "#DB7093",
+  "#ec9595",
+];
 
-  const pretty = (obj) => {
-    try {
-      return typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-    } catch {
-      return String(obj);
-    }
-  };
+const initialSchedule = {
+  mon: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+  tue: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+  wed: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+  thu: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+  fri: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+  sat: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+  sun: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+};
 
-  const normalizeUsers = (payload) => {
-    if (!payload) return [];
+function hexToRgba(hex, alpha = 1) {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
-    // already an array
-    if (Array.isArray(payload)) return payload;
+function getContrastTextColor(hex) {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 150 ? "#111827" : "#ffffff";
+}
 
-    // common wrappers
-    if (Array.isArray(payload.data)) return payload.data;
-    if (Array.isArray(payload.users)) return payload.users;
-    if (payload.data && Array.isArray(payload.data.users)) return payload.data.users;
+export default function AdminPage() {
+  const [semesterStart, setSemesterStart] = useState("");
+  const [semesterEnd, setSemesterEnd] = useState("");
+  const [members, setMembers] = useState([]);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [selectedMemberIdForAssign, setSelectedMemberIdForAssign] = useState("");
+  const [baseSchedule, setBaseSchedule] = useState(initialSchedule);
+  const [selectedLogMemberId, setSelectedLogMemberId] = useState("");
+  const [selectedMemberLogs, setSelectedMemberLogs] = useState([]);
+  const [selectedNewMemberColor, setSelectedNewMemberColor] = useState("");
+  const [colorError, setColorError] = useState(false);
 
-    // extra common shapes
-    if (payload.data && Array.isArray(payload.data.data)) return payload.data.data;
-    if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
-    if (Array.isArray(payload.items)) return payload.items;
-    if (Array.isArray(payload.result)) return payload.result;
-
-    return [];
-  };
-
-  const normalizeOneUser = (payload) => {
-    if (!payload) return null;
-    // sometimes POST returns the created row directly
-    if (payload.id || payload.user_id || payload.admin_id || payload.uuid) return payload;
-
-    // sometimes it returns { data: {...} } / { user: {...} }
-    if (payload.data && (payload.data.id || payload.data.user_id || payload.data.admin_id || payload.data.uuid)) {
-      return payload.data;
-    }
-    if (payload.user && (payload.user.id || payload.user.user_id || payload.user.admin_id || payload.user.uuid)) {
-      return payload.user;
-    }
-
-    // sometimes it returns { data: [ ... ] }
-    const arr = normalizeUsers(payload);
-    if (arr.length > 0) return arr[0];
-
-    return null;
-  };
-
-  const request = async (method, path, body) => {
-    setBusy(true);
-    setLog((prev) => prev + `\n\n▶ ${method} ${effectiveBase || "(same-origin)"}${path}`);
-
-    try {
-      const res = await fetch(`${effectiveBase}${path}`, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-
-      const text = await res.text();
-      let data = text;
+  useEffect(() => {
+    const fetchMembers = async () => {
       try {
-        data = text ? JSON.parse(text) : "";
-      } catch {
-        // keep raw text
-      }
-
-      setLog((prev) =>
-        prev +
-        `\nStatus: ${res.status} ${res.statusText}` +
-        `\nResponse:\n${pretty(data)}`
-      );
-
-      if (!res.ok) {
-        alert(`요청에 실패했습니다. (HTTP ${res.status}) 로그를 확인해 주세요.`);
-      } else {
-        alert("요청이 완료되었습니다. 로그를 확인해 주세요.");
-      }
-
-      return { ok: res.ok, status: res.status, data };
-    } catch (e) {
-      setLog((prev) => prev + `\n❌ Error: ${String(e)}`);
-      alert("요청 처리 중 오류가 발생했습니다. 로그를 확인해 주세요.");
-      return { ok: false, status: 0, data: null };
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const loadUsers = async () => {
-    setUsersLoading(true);
-    setLog((prev) => prev + `\n\n▶ GET ${effectiveBase || "(same-origin)"}/api/admin/users`);
-
-    try {
-      const res = await fetch(`${effectiveBase}/api/admin/users`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const text = await res.text();
-      let data = text;
-      try {
-        data = text ? JSON.parse(text) : "";
-      } catch {
-        // keep raw
-      }
-
-      setLog((prev) =>
-        prev +
-        `\nStatus: ${res.status} ${res.statusText}` +
-        `\nResponse:\n${pretty(data)}`
-      );
-
-      if (!res.ok) {
-        alert(`학회원 목록을 불러오지 못했습니다. (HTTP ${res.status}) 로그를 확인해 주세요.`);
-        setUsers([]);
-        return;
-      }
-
-      setUsers(normalizeUsers(data));
-    } catch (e) {
-      setLog((prev) => prev + `\n❌ Error: ${String(e)}`);
-      alert("학회원 목록을 불러오는 중 오류가 발생했습니다. 로그를 확인해 주세요.");
-      setUsers([]);
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-  const loadUserLogs = async (opts = {}) => {
-    const uid = String(opts.userId ?? selectedLogUserId ?? "").trim();
-    const date = String(opts.date ?? selectedLogDate ?? "").trim();
-  
-    if (!uid) {
-      setUserLogs("");
-      return;
-    }
-  
-    setUserLogsLoading(true);
-    setLog((prev) =>
-      prev +
-      `\n\n▶ GET ${effectiveBase || "(same-origin)"}/api/admin/users/${uid}/logs${
-        date ? `?date=${date}` : ""
-      }`
-    );
-  
-    try {
-      const qs = date ? `?date=${encodeURIComponent(date)}` : "";
-      const res = await fetch(
-        `${effectiveBase}/api/admin/users/${encodeURIComponent(uid)}/logs${qs}`,
-        {
+        const result = await api(API_ENDPOINTS.getAllAdmins, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+        });
+
+        const fetchedMembers = (result?.data ?? []).map((item) => ({
+          id: item.id,
+          name: item.name,
+          color: item.color_hex,
+          lateCount: item.late_count ?? 0,
+        }));
+
+        setMembers(fetchedMembers);
+
+        if (fetchedMembers.length > 0) {
+          setSelectedLogMemberId((prev) => prev || fetchedMembers[0].id);
+          setSelectedMemberIdForAssign((prev) => prev || fetchedMembers[0].id);
         }
-      );
-  
-      const text = await res.text();
-      let data = text;
-      try {
-        data = text ? JSON.parse(text) : "";
-      } catch {
-        // keep raw
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "학회원 목록을 불러오지 못했습니다.");
       }
-  
-      setLog((prev) => prev + `\nStatus: ${res.status} ${res.statusText}\nResponse:\n${pretty(data)}`);
-  
-      if (!res.ok) {
-        setUserLogs("");
-        return;
-      }
-  
-      setUserLogs(typeof data === "string" ? data : JSON.stringify(data, null, 2));
-    } catch (e) {
-      setLog((prev) => prev + `\n❌ Error: ${String(e)}`);
-      setUserLogs("");
-    } finally {
-      setUserLogsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!selectedLogUserId) {
-      setUserLogs("");
-      return;
-    }
-    loadUserLogs();
-  }, [selectedLogUserId, selectedLogDate]);
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const resetSchedule = async () => {
-    if (!confirm("학기 시간표를 초기화하시겠습니까? (late_count 초기화 포함)")) return;
-    await request("POST", "/api/admin/schedules/init");
-  };
-
-  const setupWeeks = async (e) => {
-    e.preventDefault();
-
-    if (!semesterStart) {
-      alert("개강일을 입력해 주세요.");
-      return;
-    }
-
-    const payload = {
-      semester_start_date: semesterStart,
-      semester_end_date: semesterEnd || null,
-      weeks: Number(weekCount) || 16,
     };
 
-    await request("POST", "/api/admin/setup-weeks", payload);
-  };
+    fetchMembers();
+  }, []);
 
-  const createUser = async (e) => {
+  const usedColors = useMemo(() => {
+    return new Set(members.map((member) => member.color).filter(Boolean));
+  }, [members]);
+
+  const semesterReady = useMemo(() => {
+    const hasDate = Boolean(semesterStart && semesterEnd);
+    const hasSchedule = DAYS.some((day) =>
+      PERIODS.some((period) => baseSchedule[day.key][period])
+    );
+    return hasDate && hasSchedule;
+  }, [semesterStart, semesterEnd, baseSchedule]);
+
+  const selectedLogMember = useMemo(() => {
+    return members.find((member) => member.id === selectedLogMemberId) ?? null;
+  }, [members, selectedLogMemberId]);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      if (!selectedLogMemberId) {
+        setSelectedMemberLogs([]);
+        return;
+      }
+
+      try {
+        const result = await api(API_ENDPOINTS.getAdminLogs(selectedLogMemberId), {
+          method: "GET",
+        });
+
+        const mappedLogs = (result?.data ?? []).map((item) => {
+          const slot = item?.Weekly_Schedules?.Timetable_Slots;
+          const checkInDate = item?.check_in_at ? new Date(item.check_in_at) : null;
+
+          return {
+            id: item.id,
+            date: checkInDate
+              ? checkInDate.toLocaleDateString("ko-KR")
+              : "-",
+            weekNumber: item?.Weekly_Schedules?.week_number ?? "-",
+            dayLabel: slot?.day_of_week ?? "-",
+            period: slot?.period_number ?? "-",
+            scheduledStart: "-",
+            scheduledEnd: "-",
+            checkInAt: checkInDate
+              ? checkInDate.toLocaleTimeString("ko-KR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "-",
+            checkOutAt: item?.check_out_at
+              ? new Date(item.check_out_at).toLocaleTimeString("ko-KR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "-",
+          };
+        });
+
+        setSelectedMemberLogs(mappedLogs);
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "출결 로그를 불러오지 못했습니다.");
+        setSelectedMemberLogs([]);
+      }
+    };
+
+    fetchLogs();
+  }, [selectedLogMemberId]);
+
+  const availableColors = useMemo(() => {
+    return USER_COLOR_POOL.filter((color) => !usedColors.has(color));
+  }, [usedColors]);
+
+  const handleAddMember = async (e) => {
     e.preventDefault();
 
-    if (!newUser.name.trim()) {
-      alert("이름을 입력해 주세요.");
+    const name = newMemberName.trim();
+    if (!name) {
+      alert("추가할 학회원 이름을 입력해 주세요.");
       return;
     }
 
-    const autoColor = pickUserColor(users);
+    if (!selectedNewMemberColor) {
+      setColorError(true);
+      return;
+    }
 
-    const result = await request("POST", "/api/admin/users", {
-      name: newUser.name.trim(),
-      color: autoColor,
-    });
-    
-    setNewUser({ name: "" });
+    const duplicated = members.some((member) => member.name === name);
+    if (duplicated) {
+      alert("같은 이름의 학회원이 이미 있습니다.");
+      return;
+    }
 
-    if (result?.ok) {
-      const created = normalizeOneUser(result.data);
-      if (created) {
-        setUsers((prev) => {
-          const next = [{ ...created, color: created.color ?? autoColor }, ...prev];
-          // id 기준 중복 제거 (없으면 그대로)
-          const seen = new Set();
-          return next.filter((u) => {
-            const key = u.id ?? u.user_id ?? u.admin_id ?? u.uuid;
-            if (key == null) return true;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
+    try {
+      const result = await api(API_ENDPOINTS.createAdmin, {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          color_hex: selectedNewMemberColor,
+        }),
+      });
+
+      const created = result?.data;
+      if (!created) {
+        throw new Error("학회원 생성 응답이 올바르지 않습니다.");
+      }
+
+      const newMember = {
+        id: created.id,
+        name: created.name,
+        color: created.color_hex,
+        lateCount: created.late_count ?? 0,
+      };
+
+      setMembers((prev) => [...prev, newMember]);
+      setNewMemberName("");
+      setSelectedNewMemberColor("");
+      setColorError(false);
+
+      if (!selectedMemberIdForAssign) {
+        setSelectedMemberIdForAssign(newMember.id);
+      }
+      if (!selectedLogMemberId) {
+        setSelectedLogMemberId(newMember.id);
+      }
+
+      alert(result?.message || "학회원이 등록되었습니다.");
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "학회원 추가에 실패했습니다.");
+    }
+  };
+
+  const handleRemoveMember = async (id) => {
+    const target = members.find((member) => member.id === id);
+    if (!target) return;
+
+    const ok = confirm(`'${target.name}' 학회원을 삭제할까요?`);
+    if (!ok) return;
+
+    try {
+      const result = await api(API_ENDPOINTS.deleteAdmin(id), {
+        method: "DELETE",
+      });
+
+      const remainingMembers = members.filter((member) => member.id !== id);
+
+      setMembers(remainingMembers);
+
+      setBaseSchedule((prev) => {
+        const next = structuredClone(prev);
+
+        DAYS.forEach((day) => {
+          PERIODS.forEach((period) => {
+            if (next[day.key][period] === id) {
+              next[day.key][period] = "";
+            }
           });
         });
-      } else {
-        setUsers((prev) => [{ id: `tmp-${Date.now()}`, name: newUser.name.trim(), color: autoColor }, ...prev]);
-        loadUsers();
+
+        return next;
+      });
+
+      if (selectedMemberIdForAssign === id) {
+        setSelectedMemberIdForAssign(remainingMembers[0]?.id ?? "");
       }
+
+      if (selectedLogMemberId === id) {
+        setSelectedLogMemberId(remainingMembers[0]?.id ?? "");
+      }
+
+      alert(result?.message || "학회원 정보가 삭제되었습니다.");
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "학회원 삭제에 실패했습니다.");
     }
   };
 
-  const removeUser = async (e) => {
-    e.preventDefault();
-
-    const name = deleteUserName.trim();
-    if (!name) {
-      alert("삭제할 이름을 입력해 주세요.");
+  const handleCellClick = (dayKey, period) => {
+    if (!selectedMemberIdForAssign) {
+      alert("먼저 아래 학회원 색상표에서 배정할 학회원을 선택해 주세요.");
       return;
     }
 
-    // 이름으로 users에서 찾기 (대소문자 무시, 완전일치 우선)
-    const lowered = name.toLowerCase();
-    const matches = (users || []).filter((u) => {
-      const uName = String(u.name ?? u.username ?? "").trim();
-      return uName && uName.toLowerCase() === lowered;
+    setBaseSchedule((prev) => {
+      const currentAssigned = prev[dayKey][period];
+      const next = structuredClone(prev);
+      next[dayKey][period] = currentAssigned === selectedMemberIdForAssign ? "" : selectedMemberIdForAssign;
+      return next;
+    });
+  };
+
+  const clearScheduleCell = (dayKey, period) => {
+    setBaseSchedule((prev) => {
+      const next = structuredClone(prev);
+      next[dayKey][period] = "";
+      return next;
+    });
+  };
+
+  const getSlotId = (dayIndex, period) => dayIndex * 6 + period;
+
+  const buildDefaultSchedulePayload = () => {
+    const schedules = [];
+
+    DAYS.forEach((day, dayIndex) => {
+      PERIODS.forEach((period) => {
+        const assignedAdminId = baseSchedule?.[day.key]?.[period] || null;
+
+        schedules.push({
+          id: getSlotId(dayIndex, period),
+          default_admin_id: assignedAdminId,
+        });
+      });
     });
 
-    if (matches.length === 0) {
-      alert(`해당 이름의 학회원을 찾을 수 없습니다: ${name}`);
+    return schedules;
+  };
+
+  const handleSemesterSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!semesterStart || !semesterEnd) {
+      alert("개강일과 종강일을 모두 입력해 주세요.");
       return;
     }
 
-    if (matches.length > 1) {
-      const ids = matches
-        .map((u) => u.id ?? u.user_id ?? u.admin_id ?? u.uuid)
-        .filter((v) => v != null)
-        .join(", ");
-      alert(`이름이 중복됩니다: ${name}\n해당 ID 목록: ${ids}\n목록의 삭제 버튼을 사용해 원하는 항목을 삭제해 주세요.`);
+    const hasAnySchedule = DAYS.some((day) =>
+      PERIODS.some((period) => baseSchedule[day.key][period])
+    );
+
+    if (!hasAnySchedule) {
+      alert("기본 시간표에서 최소 1칸 이상 배정해 주세요.");
       return;
     }
 
-    const target = matches[0];
-    const id = target.id ?? target.user_id ?? target.admin_id ?? target.uuid;
+    const schedules = buildDefaultSchedulePayload();
 
-    if (id == null || id === "") {
-      alert("삭제할 ID를 확인할 수 없습니다. API 응답 필드를 확인해 주세요.");
-      return;
+    try {
+      await api(API_ENDPOINTS.resetSemester, {
+        method: "POST",
+      });
+
+      await api(API_ENDPOINTS.updateDefaultScheduleManager, {
+        method: "PATCH",
+        body: JSON.stringify({
+          schedules,
+        }),
+      });
+
+      const result = await api(API_ENDPOINTS.setupAcademicCalendar, {
+        method: "POST",
+        body: JSON.stringify({
+          startDate: semesterStart,
+          endDate: semesterEnd,
+        }),
+      });
+
+      alert(result?.message || "새 학기 설정이 완료되었습니다.");
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "새 학기 설정에 실패했습니다.");
     }
-
-    if (!confirm(`학회원 '${name}'(ID: ${id})을(를) 삭제하시겠습니까?`)) return;
-    const result = await request("DELETE", `/api/admin/users/${encodeURIComponent(id)}`);
-    if (result?.ok) {
-      setDeleteUserName("");
-      loadUsers();
-    }
   };
 
-  const disabled = useMemo(() => busy, [busy]);
-
-  const secondaryBtnStyle = {
-    border: "1px solid rgba(0,0,0,0.12)",
-    background: "#fff",
-    borderRadius: 12,
-    padding: "10px 12px",
-    fontWeight: 800,
-    cursor: "pointer",
-  };
-
-  const userListStyle = {
-    marginTop: 12,
-    border: "1px solid rgba(0,0,0,0.08)",
-    borderRadius: 14,
-    padding: 10,
-    background: "rgba(255,255,255,0.7)",
-    maxHeight: 520,
-    overflow: "auto",
-  };
-
-  const userRowStyle = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid rgba(0,0,0,0.08)",
-    background: "#fff",
-    marginBottom: 10,
-  };
-
-  const smallDangerBtnStyle = {
-    border: "1px solid rgba(239,68,68,0.35)",
-    background: "rgba(239,68,68,0.08)",
-    color: "#991b1b",
-    borderRadius: 999,
-    padding: "8px 10px",
-    fontWeight: 900,
-    cursor: "pointer",
-    flex: "0 0 auto",
-  };
+  const selectedAssignMember = members.find(
+    (member) => member.id === selectedMemberIdForAssign
+  );
 
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
         <div>
           <div className={styles.title}>관리자 페이지</div>
-          <div className={styles.sub}>학기 세팅 · 학회원 관리 · 리셋</div>
-          <Link className={styles.linkBtn} to="/">
-            홈으로
-          </Link>
+          <div className={styles.sub}>
+            새학기 설정 · 학회원 관리 · 출결 로그 조회
+          </div>
         </div>
+
+        <Link className={styles.linkBtn} to="/">
+          홈으로
+        </Link>
       </div>
 
-      <div className={styles.grid}>
-        {/* 1) 학기 시간표 리셋 */}
-        <section className={styles.card}>
-          <h3 className={styles.cardTitle}>학기 시간표 리셋</h3>
-          <p className={styles.cardDesc}>
-            <br />
-            시간표를 초기화하며, 설정에 따라 Admin_Users의 late_count도 0으로 초기화됩니다.
-          </p>
-
-          <button className={styles.dangerBtn} onClick={resetSchedule} disabled={disabled}>
-            {busy ? "처리중..." : "리셋 실행"}
-          </button>
-        </section>
- 
-        {/* 2) 개강일 입력(주차 생성) */}
-        <section className={styles.card}>
-          <h3 className={styles.cardTitle}>개강일 입력 (주차 생성)</h3>
-          <p className={styles.cardDesc}>
-          </p>                   
-
-          <form onSubmit={setupWeeks} className={styles.form}>
-            <label className={styles.label}>
-              개강일 (YYYY-MM-DD)
-              <input
-                className={styles.input}
-                type="date"
-                value={semesterStart}
-                onChange={(e) => setSemesterStart(e.target.value)}
-                disabled={disabled}
-              />
-            </label>
-
-            <label className={styles.label}>
-              종강일 (선택)
-              <input
-                className={styles.input}
-                type="date"
-                value={semesterEnd}
-                onChange={(e) => setSemesterEnd(e.target.value)}
-                disabled={disabled}
-              />
-            </label>
-
-            <label className={styles.label}>
-              총 주차 수
-              <input
-                className={styles.input}
-                type="number"
-                min={1}
-                max={30}
-                value={weekCount}
-                onChange={(e) => setWeekCount(e.target.value)}
-                disabled={disabled}
-              />
-            </label>
-
-            <button className={styles.primaryBtn} type="submit" disabled={disabled}>
-              {busy ? "처리중..." : "주차 생성/갱신"}
-            </button>
-          </form>
-        </section>
-
-        {/* 3) 학회원 추가 */}
-        <section className={styles.card}>
-          <h3 className={styles.cardTitle}>학회원 추가</h3>
-          <p className={styles.cardDesc}>
-          </p>
-
-          <form onSubmit={createUser} className={styles.form}>
-            <label className={styles.label}>
-              이름
-              <input
-                className={styles.input}
-                value={newUser.name}
-                onChange={(e) => setNewUser((p) => ({ ...p, name: e.target.value }))}
-                placeholder="예) 김준일"
-                disabled={disabled}
-              />
-            </label>
-
-            <button className={styles.primaryBtn} type="submit" disabled={disabled}>
-              {busy ? "처리중..." : "추가"}
-            </button>
-          </form>
-        </section>
-
-        {/* 4) 학회원 삭제 */}
-        <section className={styles.card}>
-          <h3 className={styles.cardTitle}>학회원 삭제</h3>
-          <p className={styles.cardDesc}>
-          </p>
-
-          <form onSubmit={removeUser} className={styles.form}>
-            <label className={styles.label}>
-              이름
-              <input
-                className={styles.input}
-                value={deleteUserName}
-                onChange={(e) => setDeleteUserName(e.target.value)}
-                placeholder="예) 유재중"
-                disabled={disabled}
-              />
-            </label>
-
-            <button className={styles.dangerBtn} type="submit" disabled={disabled}>
-              {busy ? "처리중..." : "삭제"}
-            </button>
-          </form>
-        </section>
-
-        {/* 5) 학회원 목록 (오른쪽) */}
-        <section className={styles.card} style={{ gridColumn: "1" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+      <div className={styles.layout}>
+        {/* SECTION 1 */}
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHeader}>
             <div>
-              <h3 className={styles.cardTitle} style={{ marginBottom: 6 }}>
-                학회원 목록
-              </h3>
-              <p className={styles.cardDesc} style={{ marginBottom: 0 }}>
+              <div className={styles.sectionEyebrow}>SECTION 1</div>
+              <h2 className={styles.sectionTitle}>새학기 시작할 때</h2>
+              <p className={styles.sectionDesc}>
+                개강일/종강일 입력 후, 월~일 1~6교시 기본 시간표를 표에서 바로 배정한다.
               </p>
             </div>
 
-            <button
-              style={secondaryBtnStyle}
-              type="button"
-              onClick={loadUsers}
-              disabled={usersLoading || disabled}
-              title="학회원 목록 새로고침"
+            <div
+              className={`${styles.statusBadge} ${
+                semesterReady ? styles.statusReady : styles.statusPending
+              }`}
             >
-              {usersLoading ? "불러오는중..." : "새로고침"}
-            </button>
+              {semesterReady ? "입력 준비 완료" : "입력 필요"}
+            </div>
           </div>
 
-          <div style={userListStyle}>
-                {users.length === 0 ? (
-                  <div style={{ padding: 10, color: "rgba(17,24,39,0.6)", fontSize: 13 }}>
-                    {usersLoading ? "불러오는 중..." : "표시할 학회원이 없습니다. (또는 API 응답 파싱에 실패했습니다.)"}
-                  </div>
-                ) : (
-                  users.map((u, idx) => {
-                    const id = u.id ?? u.user_id ?? u.admin_id ?? u.uuid ?? idx;
-                    const name = u.name ?? u.username ?? "(이름없음)";
+          <form className={styles.stack} onSubmit={handleSemesterSubmit}>
+            <div className={styles.subCard}>
+              <h3 className={styles.subCardTitle}>1) 학기 기간 입력</h3>
 
+              <div className={styles.formGrid}>
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>개강일</span>
+                  <input
+                    className={styles.input}
+                    type="date"
+                    value={semesterStart}
+                    onChange={(e) => setSemesterStart(e.target.value)}
+                  />
+                </label>
+
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>종강일</span>
+                  <input
+                    className={styles.input}
+                    type="date"
+                    value={semesterEnd}
+                    onChange={(e) => setSemesterEnd(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className={styles.subCard}>
+              <div className={styles.subCardTop}>
+                <div>
+                  <h3 className={styles.subCardTitle}>2) 기본 시간표 입력</h3>
+                  <p className={styles.helperText}>
+                    아래 색상 배정된 학회원을 선택한 뒤 시간표 칸을 눌러 배정한다.
+                    이미 배정된 칸에서 같은 학회원을 다시 누르면 해제된다.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.assignPanel}>
+                <div className={styles.assignTitle}>배정할 학회원 선택</div>
+
+                <div className={styles.memberBadgeWrap}>
+                  {members.map((member) => {
+                    const active = selectedMemberIdForAssign === member.id;
                     return (
-                      <div
-                        key={String(id)}
-                        style={{ ...userRowStyle, cursor: "pointer" }}
-                        onClick={() => {
-                          setSelectedLogUserId(String(id));
+                      <button
+                        key={member.id}
+                        type="button"
+                        className={`${styles.memberBadgeBtn} ${
+                          active ? styles.memberBadgeBtnActive : ""
+                        }`}
+                        onClick={() => setSelectedMemberIdForAssign(member.id)}
+                        style={{
+                          background: hexToRgba(member.color, active ? 0.22 : 0.12),
+                          borderColor: member.color,
+                          color: getContrastTextColor(member.color) === "#ffffff"
+                            ? "#111827"
+                            : "#111827",
                         }}
-                        title="클릭하면 유저 로그에서 해당 학회원이 선택됩니다."
                       >
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 900, color: "#111827", lineHeight: 1.2 }}>
-                            {name}
-                          </div>
-                          <div
-                            style={{  
-                              marginTop: 4,
-                              fontSize: 20,
-                              color: "rgba(17,24,39,0.6)",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {`id: ${String(id)}`}
-                          </div>
-                        </div>  
-
-                        <button
-                          style={smallDangerBtnStyle}
-                          type="button"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (!confirm(`'${name}'(ID: ${id})을(를) 삭제하시겠습니까?`)) return;
-                            const result = await request(
-                              "DELETE",
-                              `/api/admin/users/${encodeURIComponent(id)}`
-                            );
-                            if (result?.ok) loadUsers();
-                          }}
-                          disabled={disabled}
-                          title="이 학회원 삭제"
-                        >
-                          삭제
-                        </button>
-                      </div>
+                        <span
+                          className={styles.memberBadgeDot}
+                          style={{ background: member.color }}
+                        />
+                        {member.name}
+                      </button>
                     );
-                  })
+                  })}
+                </div>
+
+                <div className={styles.currentAssignInfo}>
+                  현재 선택:
+                  <strong>
+                    {selectedAssignMember
+                      ? ` ${selectedAssignMember.name}`
+                      : " 없음"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className={styles.scheduleTableWrap}>
+                <table className={styles.scheduleMatrix}>
+                  <thead>
+                    <tr>
+                      <th className={styles.cornerCell}>교시</th>
+                      {DAYS.map((day) => (
+                        <th key={day.key}>{day.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PERIODS.map((period) => (
+                      <tr key={period}>
+                        <th className={styles.periodHeader}>{period}교시</th>
+
+                        {DAYS.map((day) => {
+                          const memberId = baseSchedule[day.key][period];
+                          const member = members.find((m) => m.id === memberId);
+
+                          return (
+                            <td key={`${day.key}-${period}`}>
+                              <button
+                                type="button"
+                                className={`${styles.scheduleCell} ${
+                                  member ? styles.scheduleCellFilled : styles.scheduleCellEmpty
+                                }`}
+                                onClick={() => handleCellClick(day.key, period)}
+                                onContextMenu={(e) => {
+                                  e.preventDefault();
+                                  clearScheduleCell(day.key, period);
+                                }}
+                                style={
+                                  member
+                                    ? {
+                                        background: hexToRgba(member.color, 0.16),
+                                        borderColor: member.color,
+                                        color: "#111827",
+                                      }
+                                    : undefined
+                                }
+                                title={
+                                  member
+                                    ? `${day.label} ${period}교시 - ${member.name}`
+                                    : `${day.label} ${period}교시 - 비어 있음`
+                                }
+                              >
+                                {member ? (
+                                  <>
+                                    <span
+                                      className={styles.cellColorBar}
+                                      style={{ background: member.color }}
+                                    />
+                                    <span className={styles.cellName}>{member.name}</span>
+                                  </>
+                                ) : (
+                                  <span className={styles.cellPlaceholder}>비어 있음</span>
+                                )}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className={styles.helperFoot}>
+                좌클릭으로 배정/해제, 우클릭으로 바로 비우기
+              </div>
+            </div>
+
+            <div className={styles.submitRow}>
+              <button type="submit" className={styles.primaryBtn}>
+                새학기 설정 저장 준비
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* SECTION 2 */}
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <div className={styles.sectionEyebrow}>SECTION 2</div>
+              <h2 className={styles.sectionTitle}>학회원</h2>
+              <p className={styles.sectionDesc}>
+                목록 확인, 추가, 삭제를 여기서 처리한다.
+              </p>
+            </div>
+
+            <div className={styles.countBadge}>총 {members.length}명</div>
+          </div>
+
+          <div className={styles.memberGrid}>
+            <div className={styles.subCard}>
+              <div className={styles.subCardTop}>
+                <div>
+                  <h3 className={styles.subCardTitle}>1) 학회원 목록</h3>
+                </div>
+              </div>
+
+              <div className={styles.memberList}>
+                {members.length === 0 ? (
+                  <div className={styles.emptyBox}>등록된 학회원이 없습니다.</div>
+                ) : (
+                  members.map((member) => (
+                    <div key={member.id} className={styles.memberItem}>
+                      <div className={styles.memberInfo}>
+                        <div className={styles.memberNameRow}>
+                          <span
+                            className={styles.memberColorChip}
+                            style={{ background: member.color }}
+                          />
+                          <div className={styles.memberName}>{member.name}</div>
+                        </div>
+                        <div className={styles.memberMeta}>
+                          id: {member.id} · color: {member.color}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className={styles.smallDangerBtn}
+                        onClick={() => handleRemoveMember(member.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))
                 )}
+              </div>
+            </div>
+
+            <div className={styles.sideStack}>
+              <div className={styles.subCard}>
+                <h3 className={styles.subCardTitle}>2) 학회원 추가</h3>
+
+                <form className={styles.stack} onSubmit={handleAddMember}>
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>이름</span>
+                    <input
+                      className={styles.input}
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      placeholder="학회원 이름"
+                    />
+                  </label>
+
+                  <div className={styles.colorChartBox}>
+                    <div className={styles.colorChartTitle}>색상 차트</div>
+
+                    <div className={styles.colorChartGrid}>
+                      {availableColors.length === 0 ? (
+                        <div className={styles.emptyColorText}>선택 가능한 색상이 없습니다.</div>
+                      ) : (
+                        availableColors.map((color) => {
+                          const isSelected = selectedNewMemberColor === color;
+
+                          return (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => {
+                                setSelectedNewMemberColor(color);
+                                setColorError(false);
+                              }}
+                              className={`${styles.colorSwatch} ${
+                                isSelected ? styles.colorSwatchSelected : ""
+                              }`}
+                              title={`${color} 선택`}
+                            >
+                              <span
+                                className={styles.colorPreview}
+                                style={{ background: color }}
+                              />
+                              <span className={styles.colorCode}>{color}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {colorError && (
+                      <div className={styles.fieldError}>색상을 선택해 주세요.</div>
+                    )}
+                  </div>
+                  <div className={styles.nextColorPreview}>
+                    선택한 색상:
+                    <strong>{selectedNewMemberColor ? ` ${selectedNewMemberColor}` : " 없음"}</strong>
+                  </div>
+                  <button
+                    type="submit"
+                    className={styles.primaryBtn}
+                    disabled={!newMemberName.trim() || !selectedNewMemberColor}
+                  >
+                    학회원 추가
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
         </section>
 
-                {/* 유저 로그 */}
-        <section className={styles.card} style={{ gridColumn: "2", gridRow: "1 / span 6" }}>
-          <h3 className={styles.cardTitle}>유저 로그</h3>
+        {/* SECTION 3 */}
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <div className={styles.sectionEyebrow}>SECTION 3</div>
+              <h2 className={styles.sectionTitle}>로그</h2>
+              <p className={styles.sectionDesc}>
+                학회원 이름 뱃지를 누르면 해당 학회원의 출결 로그 전체가 나온다.
+              </p>
+            </div>
+          </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <select
-              value={selectedLogUserId}
-              onChange={(e) => setSelectedLogUserId(e.target.value)}
-              disabled={disabled || usersLoading}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: "#fff",
-                fontWeight: 800,
-                minWidth: 240,
-                flex: "1 1 240px",
-                maxWidth: 420,
-              }}
-            >
-              <option value="">학회원 선택</option>
-              {users.map((u, idx) => {
-                const id = u.id ?? u.user_id ?? u.admin_id ?? u.uuid ?? idx;
-                const name = u.name ?? u.username ?? `user ${String(id)}`;
+          <div className={styles.subCard}>
+            <h3 className={styles.subCardTitle}>학회원 선택</h3>
+
+            <div className={styles.memberBadgeWrap}>
+              {members.map((member) => {
+                const active = selectedLogMemberId === member.id;
                 return (
-                  <option key={String(id)} value={String(id)}>
-                    {name} (id:{String(id)})
-                  </option>
+                  <button
+                    key={member.id}
+                    type="button"
+                    className={`${styles.memberBadgeBtn} ${
+                      active ? styles.memberBadgeBtnActive : ""
+                    }`}
+                    onClick={() => setSelectedLogMemberId(member.id)}
+                    style={{
+                      background: hexToRgba(member.color, active ? 0.22 : 0.1),
+                      borderColor: member.color,
+                    }}
+                  >
+                    <span
+                      className={styles.memberBadgeDot}
+                      style={{ background: member.color }}
+                    />
+                    {member.name}
+                  </button>
                 );
               })}
-            </select>
-
-            <input
-              type="date"
-              value={selectedLogDate}
-              onChange={(e) => setSelectedLogDate(e.target.value)}
-              disabled={disabled}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: "#fff",
-                fontWeight: 800,
-                minWidth: 200,
-                flex: "0 0 auto",
-              }}
-            />
-
-            <button
-              className={styles.primaryBtn}
-              type="button"
-              onClick={() => loadUserLogs()}
-              disabled={disabled || userLogsLoading || !selectedLogUserId}
-              style={{ width: "auto" }}
-              title="수동 새로고침"
-            >
-              {userLogsLoading ? "불러오는중..." : "로그 불러오기"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setUserLogs("");
-                setSelectedLogDate("");
-                setSelectedLogUserId("");
-              }}
-              disabled={disabled}
-              style={secondaryBtnStyle}
-              title="선택/로그 초기화"
-            >
-              초기화
-            </button>
+            </div>
           </div>
 
-          <textarea
-            className={styles.log}
-            value={userLogs}
-            readOnly
-            placeholder="학회원을 선택하면 로그가 자동으로 표시됩니다. 날짜를 선택하면 필터링됩니다."
-            style={{ width: "100%", height: 420, maxHeight: 420, overflow: "auto", resize: "none" }}
-          />
+          <div className={styles.subCard}>
+            <div className={styles.subCardTop}>
+              <div>
+                <h3 className={styles.subCardTitle}>출결 로그 목록</h3>
+                <p className={styles.helperText}>
+                  관리시작/관리끝 예정 시각과 실제 관리시작/관리끝 기록을 함께 보여준다.
+                </p>
+              </div>
+            </div>
 
-          <details style={{ marginTop: 12 }}>
-            <summary style={{ cursor: "pointer", fontWeight: 900, color: "rgba(17,24,39,0.75)" }}>
-              API 디버그 로그 (관리자 확인용)
-            </summary>
-            <textarea
-              className={styles.log}
-              value={log}
-              onChange={(e) => setLog(e.target.value)}
-              style={{ minHeight: 220, marginTop: 10 }}
-            />  
-          </details> 
+            {!selectedLogMember ? (
+              <div className={styles.emptyBox}>학회원을 선택해 주세요.</div>
+            ) : selectedMemberLogs.length === 0 ? (
+              <div className={styles.emptyBox}>
+                {selectedLogMember.name}의 로그가 없습니다.
+              </div>
+            ) : (
+              <div className={styles.logList}>
+                {selectedMemberLogs.map((log) => (
+                  <div key={log.id} className={styles.logItem}>
+                    <div className={styles.logTop}>
+                      <div className={styles.logLeft}>
+                        <span
+                          className={styles.logMemberDot}
+                          style={{ background: selectedLogMember.color }}
+                        />
+                        <span className={styles.logName}>{selectedLogMember.name}</span>
+                      </div>
+
+                      <span className={styles.logDate}>
+                        {log.date} · {log.dayLabel} · {log.period}교시
+                      </span>
+                    </div>
+
+                    <div className={styles.logInfoGrid}>
+                      <div className={styles.logInfoBox}>
+                        <div className={styles.logInfoLabel}>관리시작</div>
+                        <div className={styles.logInfoValue}>{log.scheduledStart}</div>
+                      </div>
+
+                      <div className={styles.logInfoBox}>
+                        <div className={styles.logInfoLabel}>관리끝</div>
+                        <div className={styles.logInfoValue}>{log.scheduledEnd}</div>
+                      </div>
+
+                      <div className={styles.logInfoBox}>
+                        <div className={styles.logInfoLabel}>실제 시작</div>
+                        <div className={styles.logInfoValue}>{log.checkInAt}</div>
+                      </div>
+
+                      <div className={styles.logInfoBox}>
+                        <div className={styles.logInfoLabel}>실제 종료</div>
+                        <div className={styles.logInfoValue}>{log.checkOutAt}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </div>
-    </div>  
-  ); 
+    </div>
+  );
 }
