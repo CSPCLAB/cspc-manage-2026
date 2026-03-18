@@ -10,7 +10,6 @@ export default function NoticePanel() {
           <li>본인이 이용한 자리는 깨끗하게 치우기</li>
           <li>냉장고에 음식 넣기 전 꼭 이름 쓰기</li>
           <li>본인이 이용한 자리는 깨끗하게 치우기</li>
-          <li></li>
         </ul>
         <h4>2. D104, D105 관리하기</h4>
         <ul>

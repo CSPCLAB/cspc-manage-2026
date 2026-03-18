@@ -318,9 +318,11 @@ export default function HomePage() {
         <TopBar
           right={
             <div className={styles.topRightButtons}>
+              {/*
               <button className={styles.notionBtn} onClick={() => navigate("./admin")}>
                 관리자 페이지
               </button>
+              */}
               <button className={styles.notionBtn} onClick={() => navigate("./d104")}>
                 실습실 관리
               </button>
