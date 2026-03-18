@@ -51,10 +51,10 @@ const DAYS = [
 const PERIODS = [1, 2, 3, 4, 5, 6];
 
 const USER_COLOR_POOL = [
-  "#DC143C",
-  "#ed673a",
+  "#dc1414",
+  "#de5122",
   "#f5ab2a",
-  "#faf687",
+  "#f0ea52",
   "#9ACD32",
   "#58b2b5",
   "#20b4dd",
@@ -62,9 +62,9 @@ const USER_COLOR_POOL = [
   "#262694",
   "#483D8B",
   "#9370DB",
-  "#db388f",
-  "#DB7093",
-  "#ec9595",
+  "#d41a83",
+  "#cf6b8d",
+  "#fd9797",
 ];
 
 const initialSchedule = {
