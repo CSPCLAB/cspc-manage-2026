@@ -119,14 +119,60 @@ export default function D104() {
         );
         if (ignore) return;
         setComputers(allComps);
-        setRepairLogs(
-          Array.isArray(reportsArr)
-            ? reportsArr.map((r) => ({
+
+        // 1) If the location API already returned reports, use them first.
+        let initialReports = Array.isArray(reportsArr)
+          ? reportsArr.map((r) => ({
+              ...r,
+              createdAt: r.createdAt || r.created_at,
+            }))
+          : [];
+
+        // 2) Front-end fallback: eagerly fetch every computer's detail endpoint
+        //    so the "전체 요청" list is populated as soon as the page opens.
+        const dbIds = compArr
+          .map((c) => c?.id)
+          .filter((id) => typeof id === "number" || typeof id === "string");
+
+        if (dbIds.length > 0) {
+          const detailResults = await Promise.allSettled(
+            dbIds.map((id) => fetchApi(`/api/lab/${id}`))
+          );
+
+          const fetchedReports = [];
+
+          for (const result of detailResults) {
+            if (result.status !== "fulfilled") continue;
+            const data = result.value;
+
+            let detailReports = [];
+            if (Array.isArray(data?.reports)) {
+              detailReports = data.reports;
+            } else if (Array.isArray(data?.data?.reports)) {
+              detailReports = data.data.reports;
+            }
+
+            for (const r of detailReports) {
+              fetchedReports.push({
                 ...r,
                 createdAt: r.createdAt || r.created_at,
-              }))
-            : []
-        );
+              });
+            }
+          }
+
+          // Merge + dedupe by report id (fallback key if id is missing)
+          const merged = [...initialReports, ...fetchedReports];
+          const seen = new Set();
+          initialReports = merged.filter((r) => {
+            const key = r?.id ?? `${r?.computer_id}-${r?.title}-${r?.createdAt}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        }
+
+        if (ignore) return;
+        setRepairLogs(initialReports);
       } catch (e) {
         // Optionally: error UI
         if (ignore) return;
@@ -216,6 +262,14 @@ export default function D104() {
     () => computers.find((c) => c.computer_number === selectedSeatNumber) ?? computers[0],
     [computers, selectedSeatNumber]
   );
+
+  const seatNumberByDbId = useMemo(() => {
+    const map = {};
+    for (const c of computers) {
+      if (c?.id != null) map[c.id] = c.computer_number;
+    }
+    return map;
+  }, [computers]);
 
   const updateSelectedComputer = (patch) => {
     setComputers((prev) =>
@@ -469,15 +523,14 @@ export default function D104() {
 
   const styles = {
     page: {
-      height: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
+      minHeight: "100vh",
       background: C.bg,
       padding: 14,
       boxSizing: "border-box",
       fontFamily: "inherit",
       color: C.text,
+      overflowX: "hidden",
+      overflowY: "auto",
     },
 
     topBar: {
@@ -552,8 +605,6 @@ export default function D104() {
       gridTemplateColumns: "1fr 360px",
       gap: 12,
       alignItems: "start",
-      flex: 1,
-      minHeight: 0,
     },
 
     card: {
@@ -564,16 +615,11 @@ export default function D104() {
       color: C.text,
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
+      overflow: "visible",
     },
 
     leftWrap: {
       padding: 14,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
     },
 
     leftHeader: {
@@ -600,15 +646,13 @@ export default function D104() {
       border: `1px solid ${C.border}`,
       borderRadius: 12,
       padding: 12,
-      flex: 1,
+      boxSizing: "border-box",
       overflow: "visible",
     },
 
     roomScroll: {
       position: "relative",
-      flex: 1,
-      overflow: "auto",
-      minHeight: 0,
+      boxSizing: "border-box",
     },
 
     grid: {
@@ -667,10 +711,6 @@ export default function D104() {
 
     formWrap: {
       padding: 14,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      minHeight: 0,
     },
 
     infoCard: {
@@ -830,6 +870,12 @@ export default function D104() {
         background: t.bg,
         color: t.fg,
         letterSpacing: "0.2px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        whiteSpace: "nowrap",
+        lineHeight: 1,
+        flexShrink: 0,
       };
     },
 
@@ -1262,7 +1308,9 @@ export default function D104() {
                     <div key={r.id} style={styles.item}>
                       <div style={styles.itemTop}>
                         <div style={styles.badgeRow}>
-                          <span style={styles.badge("gray")}>PC {r.computer_id}</span>
+                          <span style={styles.badge("gray")}>
+                            PC {seatNumberByDbId[r.computer_id] ?? r.computer_id}
+                          </span>
                           <span style={styles.badge(categoryTone(r.category))}>{r.category}</span>
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1273,7 +1321,7 @@ export default function D104() {
                             style={styles.smallBtn}
                             title="이 요청 삭제"
                           >
-                            삭제
+                            x
                           </button>
                         </div>
                       </div>

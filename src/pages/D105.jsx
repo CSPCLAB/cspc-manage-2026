@@ -86,32 +86,78 @@ export default function D105() {
   );
 
   const [isLoadingList, setIsLoadingList] = useState(false);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
 
   async function refreshComputerList() {
     setIsLoadingList(true);
+    setIsLoadingReports(true);
     try {
       const json = await apiFetch(`/api/lab?location=${encodeURIComponent(LOCATION)}`);
       const data = Array.isArray(json?.data) ? json.data : [];
       const byNumber = new Map();
       for (const c of data) byNumber.set(Number(c.computer_number), c);
 
-      setComputers(
-        allSeats.map((n) => {
-          const hit = byNumber.get(n);
-          return {
-            seatNumber: n,
-            dbId: hit?.id ?? null,
-            location: hit?.location ?? LOCATION,
-            computer_number: n,
-            is_broken: !!hit?.is_broken,
-            manufacturer: hit?.manufacturer ?? "",
-            model: hit?.model ?? "",
-            serial_number: hit?.serial_number ?? "",
-          };
-        })
-      );
+      const nextComputers = allSeats.map((n) => {
+        const hit = byNumber.get(n);
+        return {
+          seatNumber: n,
+          dbId: hit?.id ?? null,
+          location: hit?.location ?? LOCATION,
+          computer_number: n,
+          is_broken: !!hit?.is_broken,
+          manufacturer: hit?.manufacturer ?? "",
+          model: hit?.model ?? "",
+          serial_number: hit?.serial_number ?? "",
+        };
+      });
+
+      setComputers(nextComputers);
+
+      // 처음 진입 시 전체 요청 목록도 바로 채우기
+      const dbIds = nextComputers
+        .map((c) => c?.dbId)
+        .filter((id) => typeof id === "number" || typeof id === "string");
+
+      if (dbIds.length > 0) {
+        const detailResults = await Promise.allSettled(
+          dbIds.map((id) => apiFetch(`/api/lab/${id}`))
+        );
+
+        const nextReportsByDbId = {};
+
+        for (let i = 0; i < detailResults.length; i++) {
+          const result = detailResults[i];
+          const dbId = dbIds[i];
+          if (result.status !== "fulfilled") continue;
+
+          const detail = result.value;
+          const rawReports =
+            detail?.data?.reports ||
+            detail?.data?.repair_requests ||
+            detail?.data?.repairReports ||
+            detail?.data?.repair_logs ||
+            detail?.data?.requests ||
+            detail?.reports ||
+            [];
+
+          nextReportsByDbId[dbId] = Array.isArray(rawReports)
+            ? rawReports.map((r) => ({
+                id: r?.id,
+                computer_id: r?.computer_id,
+                category: r?.category,
+                title: r?.title,
+                createdAt: r?.created_at || r?.createdAt || r?.created || r?.created_time,
+              }))
+            : [];
+        }
+
+        setReportsByDbId(nextReportsByDbId);
+      } else {
+        setReportsByDbId({});
+      }
     } finally {
       setIsLoadingList(false);
+      setIsLoadingReports(false);
     }
   }
 
@@ -709,6 +755,12 @@ export default function D105() {
         background: t.bg,
         color: t.fg,
         letterSpacing: "0.2px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        whiteSpace: "nowrap",
+        lineHeight: 1,
+        flexShrink: 0,
       };
     },
     itemTitle: {
@@ -791,7 +843,8 @@ export default function D105() {
             <p style={styles.title}>실습실 PC 요청</p>
             <p style={styles.sub}>
               D105 (배치도) · PC 클릭 → 오른쪽에서 요청 작성
-              {isLoadingList ? " · 불러오는 중…" : ""}
+              {isLoadingList ? " · PC 목록 불러오는 중…" : ""}
+              {!isLoadingList && isLoadingReports ? " · 요청 목록 불러오는 중…" : ""}
             </p>
           </div>
         </div>
@@ -1100,7 +1153,7 @@ export default function D105() {
 
                 <div style={styles.field}>
                   <div style={styles.label}>요청 내용</div>
-                  <input
+                  <input 
                     value={requestText}
                     onChange={(e) => setRequestText(e.target.value)}
                     style={styles.input}
@@ -1112,7 +1165,10 @@ export default function D105() {
               </form>
             </div>
 
-            <div style={styles.listTitle}>전체 요청 목록 ({allReports.length})</div>
+            <div style={styles.listTitle}>
+              전체 요청 목록 ({allReports.length})
+              {isLoadingReports ? " · 불러오는 중…" : ""}
+            </div>
             <div style={styles.bigBox}>
               {allReports.length === 0 ? (
                 <div style={{ fontSize: 13, padding: 10, color: C.subtext }}>요청이 없습니다.</div>
@@ -1130,7 +1186,7 @@ export default function D105() {
                         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                           <span style={styles.timeText}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}</span>
                           <button type="button" onClick={() => deleteReport(r.id)} style={styles.smallBtn}>
-                            삭제
+                            x
                           </button>
                         </div>
                       </div>
