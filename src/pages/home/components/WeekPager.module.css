@@ -8,13 +8,14 @@
   height: 30px;
   width: 34px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
   cursor: pointer;
+  color: rgba(0, 0, 0, 0.82);
 }
 
 .btn:hover {
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .label {
@@ -22,12 +23,19 @@
   font-size: 13px;
   min-width: 54px;
   text-align: center;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .select {
   height: 30px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
   padding: 0 8px;
+  color: rgba(0, 0, 0, 0.88);
+  outline: none;
+}
+
+.select:focus {
+  border-color: rgba(0, 0, 0, 0.15);
 }

@@ -3,7 +3,7 @@
   height: 100dvh;
   padding: clamp(12px, 1.4vw, 20px);
   box-sizing: border-box;
-  background: #f8fafc;
+  background: #f5f0eb;
   display: flex;
   flex-direction: column;
   gap: clamp(12px, 1.2vw, 16px);
@@ -78,28 +78,33 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   height: clamp(34px, 3vw, 38px);
   padding: 0 clamp(12px, 1vw, 14px);
+
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.82);
+
   text-decoration: none;
   font-weight: 600;
   font-size: clamp(12px, 0.9vw, 13px);
   line-height: 1;
+
   white-space: nowrap;
   cursor: pointer;
+
   transition:
-    background-color 0.18s ease,
+    background 0.18s ease,
     border-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+    transform 0.18s ease;
 }
 
 .notionBtn:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
   transform: translateY(-1px);
 }
 
@@ -152,7 +157,7 @@
   padding: 0 clamp(12px, 1vw, 16px);
   border: none;
   border-radius: 10px;
-  background: #111827;
+  background: rgba(0, 0, 0, 0.88);
   color: #ffffff;
   font-size: clamp(12px, 0.9vw, 14px);
   font-weight: 600;
@@ -166,7 +171,7 @@
 
 .button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.16);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
 .button:active {
@@ -249,13 +254,6 @@
     width: 100%;
     justify-content: flex-start;
     gap: 6px;
-  }
-
-  .notionBtn {
-    height: 32px;
-    padding: 0 8px;
-    font-size: 11px;
-    border-radius: 9px;
   }
 
   .right {

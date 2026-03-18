@@ -1,5 +1,4 @@
-﻿/* ✅ 7일(월~일), 가로 넘침 방지: 컨테이너 폭 안에서 압축 */
-.grid {
+﻿.grid {
   display: grid;
   grid-template-columns: minmax(80px, 1fr) repeat(7, minmax(0, 1fr));
   gap: 8px;
@@ -12,40 +11,36 @@
   height: 30px;
 }
 
-/* 요일 헤더: 폭 안에서 줄임 */
 .dayHeader {
   height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  background: #ffffff;
-
+  background: rgba(0, 0, 0, 0.01);
+  color: rgba(0, 0, 0, 0.88);
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 한 행 */
 .row {
   display: contents;
 }
 
-/* 교시 헤더 */
 .periodHeader {
   height: 50px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  background: #ffffff;
+  background: rgba(0, 0, 0, 0.01);
   padding: 8px 8px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-
   min-width: 0;
 }
 
@@ -56,6 +51,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .periodTime {
@@ -66,25 +62,23 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: rgba(0, 0, 0, 0.72);
 }
 
-/* 셀 */
 .cell {
   height: 50px;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 14px;
   padding: 6px 8px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   min-width: 0;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   position: relative;
+  background: rgba(0, 0, 0, 0.02);
 }
 
-/* adminRow 중앙정렬 */
 .adminRow {
   display: flex;
   align-items: center;
@@ -109,26 +103,27 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.86);
 }
 
 .subBadge {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(220, 220, 220);
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.72);
   font-weight: 700;
   white-space: nowrap;
 }
 
 .todayCol {
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.10);
+  
 }
 
-/* 현재 교시 glow */
 .nowGlow {
   box-shadow:
-    0 0 0 2px rgba(59, 130, 246, 0.45),
-    0 6px 16px rgba(59, 130, 246, 0.18);
+    0 0 0 2px rgba(0, 0, 0, 0.16),
+    0 6px 16px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
 }
 
@@ -142,24 +137,26 @@
   height: 30px;
   width: 36px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
   cursor: pointer;
+  color: rgba(0, 0, 0, 0.82);
 }
 
 .editBtn:hover {
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .editOn {
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  border-color: rgba(0, 0, 0, 0.16);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
 }
 
 .editHint {
   margin-bottom: 10px;
   font-size: 12px;
   opacity: 0.75;
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .editable {
@@ -167,11 +164,10 @@
 }
 
 .picked {
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.14);
   transform: translateY(-1px);
 }
 
-/* input wrapper */
 .inputWrap {
   position: relative;
   min-width: 0;
@@ -182,32 +178,32 @@
   width: 100%;
   height: 30px;
   border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.10);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   padding: 0 8px;
-  background: rgba(255,255,255,0.92);
+  background: rgba(255, 255, 255, 0.92);
   outline: none;
-
   font-size: 14px;
   font-weight: 750;
   letter-spacing: 0.4px;
-
   min-width: 0;
-  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .nameInput::placeholder {
-  color: rgba(0,0,0,0.28);
+  color: rgba(0, 0, 0, 0.28);
   font-weight: 700;
 }
 
 .nameInput:focus {
-  border-color: rgba(59, 130, 246, 0.45);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  border-color: rgba(0, 0, 0, 0.16);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.97);
 }
 
 .errorCell {
   border-color: rgba(220, 38, 38, 0.55);
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.10);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
 }
 
 .errorMsg {
@@ -224,7 +220,6 @@
   pointer-events: none;
 }
 
-/* 자동완성 */
 .suggestBox {
   position: absolute;
   left: 6px;
@@ -232,18 +227,18 @@
   top: 40px;
   z-index: 50;
   border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: rgba(255,255,255,0.98);
-  box-shadow: 0 14px 34px rgba(0,0,0,0.14);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
   overflow: hidden;
 }
 
 .suggestTop {
   padding: 6px 8px;
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 0, 0, 0.03);
   font-size: 10px;
   font-weight: 900;
-  color: rgba(0,0,0,0.55);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .suggestItem {
@@ -255,15 +250,16 @@
   cursor: pointer;
   font-weight: 850;
   font-size: 13px;
+  color: rgba(0, 0, 0, 0.86);
   transition: background 0.08s ease;
 }
 
 .suggestItem:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .suggestActive {
-  background: rgba(0,0,0,0.10);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .editActions {
@@ -277,19 +273,23 @@
   height: 30px;
   padding: 0 10px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   cursor: pointer;
   font-weight: 900;
 }
 
+.cancelBtn {
+  background: rgba(0, 0, 0, 0.03);
+  color: rgba(0, 0, 0, 0.82);
+}
+
 .cancelBtn:hover {
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .saveBtn {
-  border-color: rgba(15, 23, 42, 0.18);
-  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.88);
   color: white;
 }
 
@@ -308,7 +308,7 @@
 }
 
 .hintDirty {
-  color: rgba(15, 23, 42, 0.78);
+  color: rgba(0, 0, 0, 0.72);
   font-weight: 900;
 }
 

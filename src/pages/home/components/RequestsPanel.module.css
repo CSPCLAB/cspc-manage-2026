@@ -1,8 +1,4 @@
-﻿/* =========================
-   Layout
-========================= */
-
-.bodyWrap {
+﻿.bodyWrap {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -16,10 +12,6 @@
   min-height: 0;
 }
 
-/* =========================
-   List   
-========================= */
-
 .list {
   margin: 0;
   padding: 0;
@@ -30,25 +22,24 @@
 }
 
 .item {
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   padding: 10px 12px;
-  background: #ffffff;
+  background: rgba(0, 0, 0, 0.02);
   font-weight: 600;
   font-size: 13px;
   transition: background 0.15s ease, transform 0.05s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .item:hover {
-  background: #f8fafc;
+  background: rgba(0, 0, 0, 0.04);
 }
 
-/* =========================
-   Editor
-========================= */
-
 .editor {
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding-top: 12px;
   flex-shrink: 0;
 }
@@ -62,41 +53,38 @@
   flex: 1;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   padding: 0 12px;
   outline: none;
   font-size: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .input:focus {
-  border-color: #cbd5e1;
-  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .addBtn {
   width: 72px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.04);
   cursor: pointer;
   font-weight: 700;
   font-size: 13px;
+  color: rgba(0, 0, 0, 0.82);
   transition: background 0.15s ease, transform 0.05s ease;
 }
 
 .addBtn:hover {
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .addBtn:active {
   transform: scale(0.96);
-}
-
-.item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .left {
@@ -122,28 +110,23 @@
   opacity: 1;
 }
 
-
-/* =========================
-   Empty state
-========================= */
-
 .emptyState {
-  border: 1px dashed #e5e7eb;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
   border-radius: 14px;
-  background: #f8fafc;
+  background: rgba(0, 0, 0, 0.02);
   padding: 18px 14px;
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  color: #334155;
+  color: rgba(0, 0, 0, 0.72);
 }
 
 .emptyIcon {
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.88);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +138,7 @@
   font-weight: 800;
   font-size: 14px;
   margin-bottom: 4px;
-  color: #0f172a;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .emptyDesc {
@@ -165,19 +148,19 @@
 }
 
 .chip {
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 999px;
   padding: 6px 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
+  color: rgba(0, 0, 0, 0.82);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.05s ease;
 }
 
 .chip:hover {
-  background: #f1f5f9;
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .chip:active {

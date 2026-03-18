@@ -318,7 +318,7 @@ export default function HomePage() {
         <TopBar
           right={
             <div className={styles.topRightButtons}>
-              {/*
+              {/* 버튼 제거
               <button className={styles.notionBtn} onClick={() => navigate("./admin")}>
                 관리자 페이지
               </button>
