@@ -98,12 +98,23 @@ export default function AdminAuthPanel({
 
   const currentAdmin = currentCell?.admin ?? null;
   const hasActiveAssignment = Boolean(currentCell && currentAdmin);
+  const attendanceSnapshot = currentCell?.attendance ?? null;
+  const attendanceSnapshotKey = useMemo(() => {
+    if (!attendanceSnapshot) return "none";
+
+    return JSON.stringify({
+      id: attendanceSnapshot.id ?? null,
+      checkInAt: attendanceSnapshot.checkInAt ?? null,
+      checkOutAt: attendanceSnapshot.checkOutAt ?? null,
+      isLate: Boolean(attendanceSnapshot.isLate),
+    });
+  }, [attendanceSnapshot]);
 
   useEffect(() => {
-    setAttendanceState(currentCell?.attendance ?? null);
+    setAttendanceState(attendanceSnapshot);
     setActionMessage("");
     setIpNoticeMessage("");
-  }, [week, currentCellKey, currentCell]);
+  }, [week, currentCellKey, attendanceSnapshotKey]);
 
   const hasCheckedIn = Boolean(attendanceState?.checkInAt);
   const hasCheckedOut = Boolean(attendanceState?.checkOutAt);
