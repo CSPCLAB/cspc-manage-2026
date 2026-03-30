@@ -370,7 +370,6 @@ export default function HomePage() {
             <div className={styles.leftTop}>
               <NoticePanel />
               <AdminAuthPanel
-                adminPool={adminPool}
                 week={week}
                 cells={currentWeekCells}
                 loadingSchedule={loadingSchedule}
