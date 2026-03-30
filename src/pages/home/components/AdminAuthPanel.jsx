@@ -41,19 +41,17 @@ function inWindow(now, start, end) {
 }
 
 export default function AdminAuthPanel({
-  adminPool = [],
   week,
   cells = [],
   loadingSchedule = false,
   scheduleError = null,
 }) {
   const [now, setNow] = useState(() => new Date());
-  const [attendanceId, setAttendanceId] = useState(null);
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
-  const [lateMarked, setLateMarked] = useState(false);
   const [ipNoticeMessage, setIpNoticeMessage] = useState("");
+  const [attendanceState, setAttendanceState] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -102,94 +100,34 @@ export default function AdminAuthPanel({
   const hasActiveAssignment = Boolean(currentCell && currentAdmin);
 
   useEffect(() => {
-    setAttendanceId(null);
-    setLateMarked(false);
+    setAttendanceState(currentCell?.attendance ?? null);
     setActionMessage("");
     setIpNoticeMessage("");
-  }, [week, currentCellKey]);
+  }, [week, currentCellKey, currentCell]);
+
+  const hasCheckedIn = Boolean(attendanceState?.checkInAt);
+  const hasCheckedOut = Boolean(attendanceState?.checkOutAt);
+  const isLate = Boolean(attendanceState?.isLate);
 
   const startEnabled = useMemo(() => {
-    if (!currentCell || !currentAdmin || attendanceId) return false;
+    if (!currentCell || !currentAdmin || hasCheckedIn) return false;
 
     const end = addMinutes(currentCell.startAt, 10);
     return inWindow(now, currentCell.startAt, end);
-  }, [now, currentCell, currentAdmin, attendanceId]);
+  }, [now, currentCell, currentAdmin, hasCheckedIn]);
 
   const endEnabled = useMemo(() => {
-    if (!currentCell || !currentAdmin || !attendanceId) return false;
+    if (!currentCell || !currentAdmin || !hasCheckedIn || hasCheckedOut) return false;
 
     const s = addMinutes(currentCell.endAt, -10);
     const e = addMinutes(currentCell.endAt, 10);
     return inWindow(now, s, e);
-  }, [now, currentCell, currentAdmin, attendanceId]);
-
-  const isLate = useMemo(() => {
-    if (!currentCell || !currentAdmin || attendanceId) return false;
-
-    const lateTime = addMinutes(currentCell.startAt, 10);
-    return now > lateTime && now <= currentCell.endAt;
-  }, [now, currentCell, currentAdmin, attendanceId]);
-
-  const endLate = useMemo(() => {
-    if (!currentCell || !currentAdmin || !attendanceId) return false;
-
-    const lateEnd = addMinutes(currentCell.endAt, 10);
-    return now > lateEnd;
-  }, [now, currentCell, currentAdmin, attendanceId]);
+  }, [now, currentCell, currentAdmin, hasCheckedIn, hasCheckedOut]);
 
   const showLateBadge = useMemo(() => {
     if (!currentCell || !currentAdmin) return false;
-    return isLate && !attendanceId;
-  }, [currentCell, currentAdmin, isLate, attendanceId]);
-
-  async function markLate(showBadgeMessage = true) {
-    if (!currentAdmin?.id || lateMarked) return;
-
-    try {
-      const sourceAdmin =
-        adminPool.find((a) => String(a.id) === String(currentAdmin.id)) ?? currentAdmin;
-
-      const newLate = (sourceAdmin.late_count ?? 0) + 1;
-
-      const res = await fetch(`/api/users/${currentAdmin.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: sourceAdmin.name,
-          color_hex: sourceAdmin.color,
-          late_count: newLate,
-        }),
-      });
-
-      const payload = await res.json().catch(() => null);
-
-      if (!res.ok || !payload?.success) {
-        throw new Error(payload?.message || "지각 처리에 실패했어요.");
-      }
-
-      setLateMarked(true);
-      if (showBadgeMessage) {
-        setActionMessage("지각 처리되었습니다.");
-      }
-    } catch (err) {
-      console.error("지각 처리 실패", err);
-      setActionMessage(err?.message || "지각 처리 중 오류가 발생했어요.");
-    }
-  }
-
-  useEffect(() => {
-    if (isLate && !attendanceId && !lateMarked) {
-      markLate(true);
-    }
-  }, [isLate, attendanceId, lateMarked]);
-
-  useEffect(() => {
-    if (endLate && attendanceId && !lateMarked) {
-      markLate(false);
-    }
-  }, [endLate, attendanceId, lateMarked]);
+    return isLate && !hasCheckedIn;
+  }, [currentCell, currentAdmin, isLate, hasCheckedIn]);
 
   function handleRestrictedIpError(res, payload) {
     const blockedByIp =
@@ -216,10 +154,6 @@ export default function AdminAuthPanel({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          admin_id: currentAdmin.id,
-          is_late: isLate,
-        }),
       });
 
       const payload = await res.json().catch(() => null);
@@ -229,7 +163,13 @@ export default function AdminAuthPanel({
         throw new Error(payload?.message || "관리 시작 처리에 실패했어요.");
       }
 
-      setAttendanceId(payload.data?.attendance_id ?? null);
+      setAttendanceState({
+        id: payload.data?.attendance_id ?? null,
+        adminId: currentAdmin.id,
+        checkInAt: payload.data?.check_in_at ?? payload.data?.server_time ?? null,
+        checkOutAt: payload.data?.check_out_at ?? null,
+        isLate: Boolean(payload.data?.is_late),
+      });
       setActionMessage("관리 시작이 기록되었어요.");
     } catch (e) {
       setActionMessage(e?.message || "관리 시작 중 오류가 발생했어요.");
@@ -239,14 +179,14 @@ export default function AdminAuthPanel({
   }
 
   async function handleEnd() {
-    if (!attendanceId || !endEnabled || ending) return;
+    if (!currentCell?.weeklyId || !endEnabled || ending) return;
 
     try {
       setEnding(true);
       setActionMessage("");
       setIpNoticeMessage("");
 
-      const res = await fetch(`/api/attendance/${attendanceId}/end`, {
+      const res = await fetch(`/api/attendance/${currentCell.weeklyId}/end`, {
         method: "PATCH",
       });
 
@@ -257,8 +197,14 @@ export default function AdminAuthPanel({
         throw new Error(payload?.message || "관리 종료 처리에 실패했어요.");
       }
 
+      setAttendanceState((prev) => ({
+        id: prev?.id ?? payload.data?.attendance_id ?? null,
+        adminId: prev?.adminId ?? currentAdmin?.id ?? null,
+        checkInAt: prev?.checkInAt ?? payload.data?.check_in_at ?? null,
+        checkOutAt: payload.data?.check_out_at ?? payload.data?.server_time ?? null,
+        isLate: Boolean(payload.data?.is_late ?? prev?.isLate),
+      }));
       setActionMessage("관리 종료가 기록되었어요.");
-      setAttendanceId(null);
     } catch (e) {
       setActionMessage(e?.message || "관리 종료 중 오류가 발생했어요.");
     } finally {
@@ -301,16 +247,16 @@ export default function AdminAuthPanel({
         <div className={styles.actions}>
           <button
             className={`${styles.btn} ${startEnabled ? styles.btnOn : styles.btnOff}`}
-            disabled={!startEnabled || starting || !!attendanceId}
+            disabled={!startEnabled || starting || hasCheckedIn}
             onClick={handleStart}
           >
-            {starting ? "시작 처리중" : attendanceId ? "시작 완료" : "시작"}
+            {starting ? "시작 처리중" : hasCheckedIn ? "시작 완료" : "시작"}
             <span
               className={`${styles.pill} ${
-                attendanceId || startEnabled ? styles.pillOn : styles.pillOff
+                hasCheckedIn || startEnabled ? styles.pillOn : styles.pillOff
               }`}
             >
-              {starting ? "처리중" : attendanceId ? "완료" : startEnabled ? "활성" : "비활성"}
+              {starting ? "처리중" : hasCheckedIn ? "완료" : startEnabled ? "활성" : "비활성"}
             </span>
           </button>
 

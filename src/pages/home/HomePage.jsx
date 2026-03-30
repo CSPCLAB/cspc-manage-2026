@@ -57,6 +57,7 @@ function buildFilledCells(schedules, adminPool) {
 
       const weeklyId = s?.id ?? null;
       const slotId = slot?.id ?? null;
+      const attendanceRow = Array.isArray(s?.Shift_Attendance) ? s.Shift_Attendance[0] ?? null : null;
 
       const assignedId = s?.assigned_admin_id != null ? s.assigned_admin_id : null;
       const defaultId = slot?.default_admin_id != null ? slot.default_admin_id : null;
@@ -100,6 +101,15 @@ function buildFilledCells(schedules, adminPool) {
         assignedAdminId: assignedId,
         defaultAdminId: defaultId,
         isSub,
+        attendance: attendanceRow
+          ? {
+              id: attendanceRow.id ?? null,
+              adminId: attendanceRow.admin_id ?? null,
+              checkInAt: attendanceRow.check_in_at ?? null,
+              checkOutAt: attendanceRow.check_out_at ?? null,
+              isLate: Boolean(attendanceRow.is_late),
+            }
+          : null,
       };
     })
     .filter(Boolean);
@@ -124,6 +134,7 @@ function buildFilledCells(schedules, adminPool) {
           assignedAdminId: null,
           defaultAdminId: null,
           isSub: false,
+          attendance: null,
         }
       );
     }
@@ -308,6 +319,24 @@ export default function HomePage() {
     return () => {
       alive = false;
     };
+  }, [adminPool, week, fetchWeekSchedule]);
+
+  useEffect(() => {
+    if (!adminPool.length) return undefined;
+
+    const timer = setInterval(() => {
+      fetchWeekSchedule(week, adminPool)
+        .then((cells) => {
+          setScheduleCache((prev) => ({
+            ...prev,
+            [week]: cells,
+          }));
+        })
+        .catch(() => {
+        });
+    }, 30000);
+
+    return () => clearInterval(timer);
   }, [adminPool, week, fetchWeekSchedule]);
 
   const currentWeekCells = scheduleCache[week] ?? [];
