@@ -150,3 +150,8 @@
   opacity: 0.85;
   line-height: 1.4;
 }
+
+.loadingMsg {
+  font-size: 12px;
+  line-height: 1.4;
+}
