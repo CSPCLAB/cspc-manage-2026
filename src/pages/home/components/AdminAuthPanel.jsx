@@ -53,6 +53,7 @@ export default function AdminAuthPanel({
   const [ending, setEnding] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [lateMarked, setLateMarked] = useState(false);
+  const [ipNoticeMessage, setIpNoticeMessage] = useState("");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -104,6 +105,7 @@ export default function AdminAuthPanel({
     setAttendanceId(null);
     setLateMarked(false);
     setActionMessage("");
+    setIpNoticeMessage("");
   }, [week, currentCellKey]);
 
   const startEnabled = useMemo(() => {
@@ -135,7 +137,12 @@ export default function AdminAuthPanel({
     return now > lateEnd;
   }, [now, currentCell, currentAdmin, attendanceId]);
 
-  async function markLate() {
+  const showLateBadge = useMemo(() => {
+    if (!currentCell || !currentAdmin) return false;
+    return isLate && !attendanceId;
+  }, [currentCell, currentAdmin, isLate, attendanceId]);
+
+  async function markLate(showBadgeMessage = true) {
     if (!currentAdmin?.id || lateMarked) return;
 
     try {
@@ -163,7 +170,9 @@ export default function AdminAuthPanel({
       }
 
       setLateMarked(true);
-      setActionMessage("지각 처리되었습니다.");
+      if (showBadgeMessage) {
+        setActionMessage("지각 처리되었습니다.");
+      }
     } catch (err) {
       console.error("지각 처리 실패", err);
       setActionMessage(err?.message || "지각 처리 중 오류가 발생했어요.");
@@ -172,15 +181,27 @@ export default function AdminAuthPanel({
 
   useEffect(() => {
     if (isLate && !attendanceId && !lateMarked) {
-      markLate();
+      markLate(true);
     }
   }, [isLate, attendanceId, lateMarked]);
 
   useEffect(() => {
     if (endLate && attendanceId && !lateMarked) {
-      markLate();
+      markLate(false);
     }
   }, [endLate, attendanceId, lateMarked]);
+
+  function handleRestrictedIpError(res, payload) {
+    const blockedByIp =
+      res?.status === 403 && payload?.message === "랩실 네트워크에서만 가능합니다.";
+
+    if (!blockedByIp) return false;
+
+    const 안내문 = "관리 인증은 랩실 맨 오른쪽 컴퓨터에서만 가능합니다.";
+    setIpNoticeMessage(안내문);
+    setActionMessage(안내문);
+    return true;
+  }
 
   async function handleStart() {
     if (!currentCell?.weeklyId || !currentAdmin?.id || !startEnabled || starting) return;
@@ -188,6 +209,7 @@ export default function AdminAuthPanel({
     try {
       setStarting(true);
       setActionMessage("");
+      setIpNoticeMessage("");
 
       const res = await fetch(`/api/attendance/${currentCell.weeklyId}/start`, {
         method: "POST",
@@ -196,13 +218,14 @@ export default function AdminAuthPanel({
         },
         body: JSON.stringify({
           admin_id: currentAdmin.id,
-          is_late: false,
+          is_late: isLate,
         }),
       });
 
       const payload = await res.json().catch(() => null);
 
       if (!res.ok || !payload?.success) {
+        if (handleRestrictedIpError(res, payload)) return;
         throw new Error(payload?.message || "관리 시작 처리에 실패했어요.");
       }
 
@@ -221,6 +244,7 @@ export default function AdminAuthPanel({
     try {
       setEnding(true);
       setActionMessage("");
+      setIpNoticeMessage("");
 
       const res = await fetch(`/api/attendance/${attendanceId}/end`, {
         method: "PATCH",
@@ -229,6 +253,7 @@ export default function AdminAuthPanel({
       const payload = await res.json().catch(() => null);
 
       if (!res.ok || !payload?.success) {
+        if (handleRestrictedIpError(res, payload)) return;
         throw new Error(payload?.message || "관리 종료 처리에 실패했어요.");
       }
 
@@ -256,7 +281,7 @@ export default function AdminAuthPanel({
             <span className={hasActiveAssignment ? styles.periodOn : styles.periodOff}>
               {periodText}
             </span>
-            {hasActiveAssignment && isLate && (
+            {hasActiveAssignment && showLateBadge && (
               <span className={styles.lateBadge}>지각</span>
             )}
           </div>
@@ -300,6 +325,8 @@ export default function AdminAuthPanel({
             </span>
           </button>
         </div>
+
+        {ipNoticeMessage && <div className={styles.ipNotice}>{ipNoticeMessage}</div>}
 
         {hasActiveAssignment && currentCell && (
           <div className={styles.windows}>

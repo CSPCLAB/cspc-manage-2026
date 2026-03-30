@@ -223,3 +223,11 @@
   line-height: 1;
   white-space: nowrap;
 }
+
+.ipNotice {
+  margin-top: -2px;
+  line-height: 1.4;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
