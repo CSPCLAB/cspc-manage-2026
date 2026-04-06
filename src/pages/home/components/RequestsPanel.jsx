@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Panel from "../../../components/layout/Panel";
 import styles from "./RequestsPanel.module.css";
 
@@ -49,7 +49,7 @@ export default function RequestsPanel() {
     return [...incompleted, ...completed];
   }, [rawItems]);
 
-  const refetch = async ({ silent = false } = {}) => {
+  const refetch = useCallback(async ({ silent = false } = {}) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -79,12 +79,12 @@ export default function RequestsPanel() {
     } finally {
       if (!silent) setFetching(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => abortRef.current?.abort();
+  }, [refetch]);
 
   const onAdd = async () => {
     const item_name = text.trim();

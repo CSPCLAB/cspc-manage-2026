@@ -7,6 +7,19 @@
   box-sizing: border-box;
 }
 
+.titleWrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.weekRange {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.55);
+}
+
 .corner {
   height: 30px;
 }

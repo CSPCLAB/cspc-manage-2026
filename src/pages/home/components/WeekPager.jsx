@@ -1,7 +1,8 @@
 import styles from "./WeekPager.module.css";
 
-export default function WeekPager({ week, onChangeWeek }) {
-  const clamp = (n) => Math.max(1, Math.min(16, n));
+export default function WeekPager({ week, totalWeeks = 1, onChangeWeek }) {
+  const safeTotalWeeks = Math.max(1, Number(totalWeeks) || 1);
+  const clamp = (n) => Math.max(1, Math.min(safeTotalWeeks, n));
 
   return (
     <div className={styles.wrap}>
@@ -20,7 +21,7 @@ export default function WeekPager({ week, onChangeWeek }) {
         value={week}
         onChange={(e) => onChangeWeek(Number(e.target.value))}
       >
-        {Array.from({ length: 16 }, (_, i) => i + 1).map((n) => (
+        {Array.from({ length: safeTotalWeeks }, (_, i) => i + 1).map((n) => (
           <option key={n} value={n}>
             {n}주차
           </option>

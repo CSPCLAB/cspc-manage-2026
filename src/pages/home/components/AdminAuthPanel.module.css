@@ -119,6 +119,7 @@
 }
 
 .btn {
+  position: relative;
   flex: 1;
   height: 38px; /* 기존 36 -> 38 */
   border-radius: 12px;
@@ -130,6 +131,11 @@
   font-size: 13px;
   font-weight: 900;
   transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.btnLabel {
+  flex: 1;
+  text-align: center;
 }
 
 .btn:active {
@@ -153,6 +159,8 @@
 
 /* 버튼 안 작은 상태 pill */
 .pill {
+  position: absolute;
+  right: 10px;
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 999px;

@@ -50,12 +50,20 @@ function normalizeName(s) {
   return (s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+function formatWeekRange(startDate, endDate) {
+  if (!startDate || !endDate) return null;
+  return `${startDate} ~ ${endDate}`;
+}
+
 export default function WeekSchedulePanel({
   adminPool,
   loadingAdmins,
   adminError,
   week,
   onChangeWeek,
+  totalWeeks,
+  startDate,
+  endDate,
   cells: externalCells,
   setCellsForWeek,
   loadingSchedule,
@@ -388,6 +396,11 @@ export default function WeekSchedulePanel({
     return null;
   }, [now]);
 
+  const weekRangeLabel = useMemo(
+    () => formatWeekRange(startDate, endDate),
+    [startDate, endDate]
+  );
+
   if (loadingAdmins || loadingSchedule) {
     return <Panel title="주차별 시간표">시간표 불러오는 중...</Panel>;
   }
@@ -398,10 +411,15 @@ export default function WeekSchedulePanel({
 
   return (
     <Panel
-      title="주차별 시간표"
+      title={
+        <div className={styles.titleWrap}>
+          <span>주차별 시간표</span>
+          {weekRangeLabel ? <span className={styles.weekRange}>{weekRangeLabel}</span> : null}
+        </div>
+      }
       right={
         <div className={styles.rightControls}>
-          <WeekPager week={week} onChangeWeek={handleChangeWeek} />
+          <WeekPager week={week} totalWeeks={totalWeeks} onChangeWeek={handleChangeWeek} />
           {isEdit ? (
             <div className={styles.editActions}>
               <button className={styles.cancelBtn} onClick={onCancel}>

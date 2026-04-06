@@ -99,22 +99,12 @@ export default function AdminAuthPanel({
   const currentAdmin = currentCell?.admin ?? null;
   const hasActiveAssignment = Boolean(currentCell && currentAdmin);
   const attendanceSnapshot = currentCell?.attendance ?? null;
-  const attendanceSnapshotKey = useMemo(() => {
-    if (!attendanceSnapshot) return "none";
-
-    return JSON.stringify({
-      id: attendanceSnapshot.id ?? null,
-      checkInAt: attendanceSnapshot.checkInAt ?? null,
-      checkOutAt: attendanceSnapshot.checkOutAt ?? null,
-      isLate: Boolean(attendanceSnapshot.isLate),
-    });
-  }, [attendanceSnapshot]);
 
   useEffect(() => {
     setAttendanceState(attendanceSnapshot);
     setActionMessage("");
     setIpNoticeMessage("");
-  }, [week, currentCellKey, attendanceSnapshotKey]);
+  }, [week, currentCellKey, attendanceSnapshot]);
 
   const hasCheckedIn = Boolean(attendanceState?.checkInAt);
   const hasCheckedOut = Boolean(attendanceState?.checkOutAt);
@@ -261,7 +251,9 @@ export default function AdminAuthPanel({
             disabled={!startEnabled || starting || hasCheckedIn}
             onClick={handleStart}
           >
-            {starting ? "시작 처리중" : hasCheckedIn ? "시작 완료" : "시작"}
+            <span className={styles.btnLabel}>
+              {starting ? "시작 처리중" : hasCheckedIn ? "시작 완료" : "시작"}
+            </span>
             <span
               className={`${styles.pill} ${
                 hasCheckedIn || startEnabled ? styles.pillOn : styles.pillOff
@@ -276,7 +268,7 @@ export default function AdminAuthPanel({
             disabled={!endEnabled || ending}
             onClick={handleEnd}
           >
-            {ending ? "종료 처리중" : "끝"}
+            <span className={styles.btnLabel}>{ending ? "종료 처리중" : "끝"}</span>
             <span className={`${styles.pill} ${endEnabled ? styles.pillOn : styles.pillOff}`}>
               {ending ? "처리중" : endEnabled ? "활성" : "비활성"}
             </span>
@@ -284,6 +276,9 @@ export default function AdminAuthPanel({
         </div>
 
         {ipNoticeMessage && <div className={styles.ipNotice}>{ipNoticeMessage}</div>}
+        {actionMessage && !ipNoticeMessage && (
+          <div className={styles.message}>{actionMessage}</div>
+        )}
 
         {hasActiveAssignment && currentCell && (
           <div className={styles.windows}>

@@ -46,6 +46,12 @@ function normalizeHexColor(s) {
   return /^#[0-9a-fA-F]{6}$/.test(v) ? v : null;
 }
 
+function normalizeDateString(dateString) {
+  if (!dateString) return null;
+  const value = String(dateString).trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
 function buildFilledCells(schedules, adminPool) {
   const nextCells = (schedules ?? [])
     .map((s) => {
@@ -192,9 +198,11 @@ export default function HomePage() {
   const [rankingError, setRankingError] = useState(null);
 
   const [week, setWeek] = useState(1);
+  const [totalWeeks, setTotalWeeks] = useState(1);
   const [scheduleCache, setScheduleCache] = useState({});
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
+  const [didInitScheduleWeek, setDidInitScheduleWeek] = useState(false);
 
   useEffect(() => {
     async function fetchAdmins() {
@@ -264,8 +272,47 @@ export default function HomePage() {
       throw new Error(payload?.message || `${targetWeek}주차 시간표 불러오기 실패`);
     }
 
-    const schedules = payload?.data?.schedules ?? [];
-    return buildFilledCells(schedules, pool);
+    const data = payload?.data ?? {};
+    const schedules = data?.schedules ?? [];
+
+    return {
+      weekNumber: Number(data?.week_number) || targetWeek,
+      startDate: normalizeDateString(data?.start_date),
+      endDate: normalizeDateString(data?.end_date),
+      cells: buildFilledCells(schedules, pool),
+    };
+  }, []);
+
+  const fetchScheduleMeta = useCallback(async () => {
+    const res = await fetch("/api/schedules/meta");
+    const payload = await res.json().catch(() => null);
+
+    if (!res.ok || !payload?.success) {
+      throw new Error(payload?.message || "주차 메타 정보 불러오기 실패");
+    }
+
+    const weeks = Array.isArray(payload?.weeks)
+      ? payload.weeks
+          .map((item) => ({
+            weekNumber: Number(item?.week_number),
+            startDate: normalizeDateString(item?.start_date),
+            endDate: normalizeDateString(item?.end_date),
+          }))
+          .filter((item) => Number.isFinite(item.weekNumber))
+      : [];
+
+    const parsedTotalWeeks = Number(payload?.totalWeeks);
+    const nextTotalWeeks =
+      Number.isFinite(parsedTotalWeeks) && parsedTotalWeeks > 0
+        ? parsedTotalWeeks
+        : weeks.length > 0
+        ? Math.max(...weeks.map((item) => item.weekNumber))
+        : 1;
+
+    return {
+      totalWeeks: nextTotalWeeks,
+      weeks,
+    };
   }, []);
 
   useEffect(() => {
@@ -278,29 +325,54 @@ export default function HomePage() {
       setScheduleError(null);
 
       try {
-        const firstWeekCells = await fetchWeekSchedule(week, adminPool);
+        const [meta, todaySchedule] = await Promise.all([
+          fetchScheduleMeta(),
+          fetchWeekSchedule("today", adminPool),
+        ]);
 
         if (!alive) return;
 
-        setScheduleCache((prev) => ({
-          ...prev,
-          [week]: firstWeekCells,
-        }));
+        setTotalWeeks(meta.totalWeeks);
 
-        const weeks = Array.from({ length: 16 }, (_, i) => i + 1).filter((w) => w !== week);
+        const validWeekNumbers = meta.weeks.length
+          ? meta.weeks.map((item) => item.weekNumber)
+          : Array.from({ length: meta.totalWeeks }, (_, index) => index + 1);
+
+        const metaByWeek = new Map(meta.weeks.map((item) => [item.weekNumber, item]));
+        const todayWeekNumber = todaySchedule.weekNumber;
+
+        const initialCache = {};
+
+        validWeekNumbers.forEach((weekNumber) => {
+          const metaItem = metaByWeek.get(weekNumber);
+          initialCache[weekNumber] = {
+            weekNumber,
+            startDate: metaItem?.startDate ?? null,
+            endDate: metaItem?.endDate ?? null,
+            cells: [],
+          };
+        });
+
+        initialCache[todayWeekNumber] = {
+          ...initialCache[todayWeekNumber],
+          ...todaySchedule,
+        };
+
+        setScheduleCache(initialCache);
+        setWeek(todayWeekNumber);
+        setDidInitScheduleWeek(true);
+
+        const remainingWeeks = validWeekNumbers.filter((weekNumber) => weekNumber !== todayWeekNumber);
 
         Promise.all(
-          weeks.map(async (w) => {
-            const cells = await fetchWeekSchedule(w, adminPool);
-            return [w, cells];
-          })
+          remainingWeeks.map((weekNumber) => fetchWeekSchedule(weekNumber, adminPool))
         )
           .then((results) => {
             if (!alive) return;
 
             setScheduleCache((prev) => ({
               ...prev,
-              ...Object.fromEntries(results),
+              ...Object.fromEntries(results.map((item) => [item.weekNumber, item])),
             }));
           })
           .catch(() => {
@@ -309,8 +381,9 @@ export default function HomePage() {
         if (!alive) return;
         setScheduleError(e?.message || "시간표 불러오기 오류");
       } finally {
-        if (!alive) return;
-        setLoadingSchedule(false);
+        if (alive) {
+          setLoadingSchedule(false);
+        }
       }
     };
 
@@ -319,17 +392,17 @@ export default function HomePage() {
     return () => {
       alive = false;
     };
-  }, [adminPool, week, fetchWeekSchedule]);
+  }, [adminPool, didInitScheduleWeek, fetchScheduleMeta, fetchWeekSchedule]);
 
   useEffect(() => {
     if (!adminPool.length) return undefined;
 
     const timer = setInterval(() => {
       fetchWeekSchedule(week, adminPool)
-        .then((cells) => {
+        .then((scheduleData) => {
           setScheduleCache((prev) => ({
             ...prev,
-            [week]: cells,
+            [week]: scheduleData,
           }));
         })
         .catch(() => {
@@ -339,7 +412,8 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, [adminPool, week, fetchWeekSchedule]);
 
-  const currentWeekCells = scheduleCache[week] ?? [];
+  const currentWeekSchedule = scheduleCache[week] ?? null;
+  const currentWeekCells = currentWeekSchedule?.cells ?? [];
 
   return (
     <div ref={outerRef} className={styles.pageOuter}>
@@ -383,11 +457,20 @@ export default function HomePage() {
                 adminError={adminError}
                 week={week}
                 onChangeWeek={setWeek}
+                totalWeeks={totalWeeks}
+                startDate={currentWeekSchedule?.startDate ?? null}
+                endDate={currentWeekSchedule?.endDate ?? null}
                 cells={currentWeekCells}
                 setCellsForWeek={(nextCells) =>
                   setScheduleCache((prev) => ({
                     ...prev,
-                    [week]: nextCells,
+                    [week]: {
+                      ...prev[week],
+                      weekNumber: prev[week]?.weekNumber ?? week,
+                      startDate: prev[week]?.startDate ?? null,
+                      endDate: prev[week]?.endDate ?? null,
+                      cells: nextCells,
+                    },
                   }))
                 }
                 loadingSchedule={loadingSchedule}
