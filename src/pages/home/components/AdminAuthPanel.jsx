@@ -251,7 +251,11 @@ export default function AdminAuthPanel({
             disabled={!startEnabled || starting || hasCheckedIn}
             onClick={handleStart}
           >
-            <span className={styles.btnLabel}>
+            <span
+              className={`${styles.btnLabel} ${
+                !starting && !hasCheckedIn && !startEnabled ? styles.btnLabelWithInactivePill : ""
+              }`}
+            >
               {starting ? "시작 처리중" : hasCheckedIn ? "시작 완료" : "시작"}
             </span>
             <span
@@ -268,7 +272,13 @@ export default function AdminAuthPanel({
             disabled={!endEnabled || ending}
             onClick={handleEnd}
           >
-            <span className={styles.btnLabel}>{ending ? "종료 처리중" : "끝"}</span>
+            <span
+              className={`${styles.btnLabel} ${
+                !ending && !endEnabled ? styles.btnLabelWithInactivePill : ""
+              }`}
+            >
+              {ending ? "종료 처리중" : "끝"}
+            </span>
             <span className={`${styles.pill} ${endEnabled ? styles.pillOn : styles.pillOff}`}>
               {ending ? "처리중" : endEnabled ? "활성" : "비활성"}
             </span>
