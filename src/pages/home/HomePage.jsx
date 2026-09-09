@@ -424,6 +424,13 @@ export default function HomePage() {
   // 관리 인증은 보고 있는 주차와 무관하게 항상 '오늘이 속한 주차' 기준으로 동작해야 함
   const todayWeekCells = todayWeek != null ? scheduleCache[todayWeek]?.cells ?? [] : [];
 
+  // 시간표 저장 직전에 서버 최신 상태를 확인하기 위한 단발 조회 (캐시는 건드리지 않음)
+  const fetchLatestWeekCells = useCallback(async () => {
+    if (!adminPool.length) return null;
+    const data = await fetchWeekSchedule(week, adminPool);
+    return data.cells;
+  }, [adminPool, week, fetchWeekSchedule]);
+
   return (
     <div ref={outerRef} className={styles.pageOuter}>
       <div className={styles.page}>
@@ -467,6 +474,7 @@ export default function HomePage() {
                 week={week}
                 onChangeWeek={setWeek}
                 totalWeeks={totalWeeks}
+                fetchLatestCells={fetchLatestWeekCells}
                 startDate={currentWeekSchedule?.startDate ?? null}
                 endDate={currentWeekSchedule?.endDate ?? null}
                 cells={currentWeekCells}

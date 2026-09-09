@@ -68,6 +68,7 @@ export default function WeekSchedulePanel({
   setCellsForWeek,
   loadingSchedule,
   scheduleError,
+  fetchLatestCells,
 }) {
 
   const [isEdit, setIsEdit] = useState(false);
@@ -75,18 +76,117 @@ export default function WeekSchedulePanel({
   const [originalCells, setOriginalCells] = useState(externalCells ?? []);
   const [draftInputs, setDraftInputs] = useState({});
   const [savingSchedule, setSavingSchedule] = useState(false);
-
-  useEffect(() => {
-    setCells(externalCells ?? []);
-    setOriginalCells(externalCells ?? []);
-    setIsEdit(false);
-    setDraftInputs({});
-    setSuggestOpenFor(null);
-    setHighlightIndex(0);
-  }, [week, externalCells]);
+  const [conflictNotice, setConflictNotice] = useState(null);
 
   const [suggestOpenFor, setSuggestOpenFor] = useState(null);
   const [highlightIndex, setHighlightIndex] = useState(0);
+
+  // 이펙트 안에서 최신 값을 읽되, 그 값들이 이펙트를 재실행시키지 않게 ref로 들고 감
+  const cellsRef = useRef(cells);
+  const originalCellsRef = useRef(originalCells);
+  const draftInputsRef = useRef(draftInputs);
+  const isEditRef = useRef(isEdit);
+  const suggestOpenForRef = useRef(suggestOpenFor);
+  cellsRef.current = cells;
+  originalCellsRef.current = originalCells;
+  draftInputsRef.current = draftInputs;
+  isEditRef.current = isEdit;
+  suggestOpenForRef.current = suggestOpenFor;
+
+  const prevWeekRef = useRef(week);
+
+  // 편집 중에 내가 손댄 칸인지.
+  // 아직 이름이 다 안 쳐져서 매칭이 안 된 상태(예: "김민"까지만 입력)도 지켜야 하므로
+  // 입력한 글자 자체가 원래 값과 다르면 손댄 것으로 본다.
+  function isTouchedKey(cellKey) {
+    if (suggestOpenForRef.current === cellKey) return true;
+
+    const di = draftInputsRef.current[cellKey];
+    if (!di) return false;
+
+    const orig = originalCellsRef.current.find(
+      (c) => keyOf(c.dayIndex, c.periodKey) === cellKey
+    );
+
+    const origName = normalizeName(orig?.admin?.name ?? "");
+    const draftText = normalizeName(di.text ?? "");
+    if (draftText !== origName) return true;
+
+    const origId = orig?.admin?.id ?? null;
+    const nextId = draftText === "" ? null : di.resolvedAdminId ?? null;
+
+    return origId !== nextId;
+  }
+
+  // 서버 데이터 반영.
+  // - 주차가 바뀌면 편집 상태를 버리고 통째로 교체
+  // - 편집 중이 아니면 통째로 교체
+  // - 편집 중이면 내가 건드린 칸은 지키고 나머지만 조용히 갱신 (다른 사람 수정 반영)
+  useEffect(() => {
+    const incoming = externalCells ?? [];
+    const weekChanged = prevWeekRef.current !== week;
+    prevWeekRef.current = week;
+
+    if (weekChanged || !isEditRef.current) {
+      setCells(incoming);
+      setOriginalCells(incoming);
+
+      if (weekChanged) {
+        setIsEdit(false);
+        setDraftInputs({});
+        setSuggestOpenFor(null);
+        setHighlightIndex(0);
+        setConflictNotice(null);
+      }
+      return;
+    }
+
+    if (incoming.length === 0) return;
+
+    const currentByKey = new Map(
+      cellsRef.current.map((c) => [keyOf(c.dayIndex, c.periodKey), c])
+    );
+    const originalByKey = new Map(
+      originalCellsRef.current.map((c) => [keyOf(c.dayIndex, c.periodKey), c])
+    );
+
+    const touchedKeys = new Set();
+    const nextCells = [];
+    const nextOriginalCells = [];
+
+    for (const inc of incoming) {
+      const k = keyOf(inc.dayIndex, inc.periodKey);
+
+      if (isTouchedKey(k)) {
+        touchedKeys.add(k);
+        nextCells.push(currentByKey.get(k) ?? inc);
+        nextOriginalCells.push(originalByKey.get(k) ?? inc);
+        continue;
+      }
+
+      nextCells.push(inc);
+      nextOriginalCells.push(inc);
+    }
+
+    setCells(nextCells);
+    setOriginalCells(nextOriginalCells);
+
+    // 안 건드린 칸은 입력창 표시값도 최신으로 맞춤
+    setDraftInputs((prev) => {
+      const next = { ...prev };
+      for (const inc of incoming) {
+        const k = keyOf(inc.dayIndex, inc.periodKey);
+        if (touchedKeys.has(k)) continue;
+
+        next[k] = {
+          text: inc.admin?.name ?? "",
+          resolvedAdminId: inc.admin?.id ?? null,
+          error: null,
+        };
+      }
+      return next;
+    });
+  }, [week, externalCells, isEdit]);
 
   const gridRef = useRef(null);
 
@@ -128,9 +228,9 @@ export default function WeekSchedulePanel({
     return m;
   }, [originalCells]);
 
-  useEffect(() => {
-    if (!isEdit) return;
-
+  // 편집 진입 시점에만 입력값을 만든다.
+  // (이걸 이펙트로 cells에 물려두면 30초 폴링 때마다 입력이 날아감)
+  function startEdit() {
     const init = {};
     for (const c of cells) {
       const k = keyOf(c.dayIndex, c.periodKey);
@@ -143,7 +243,9 @@ export default function WeekSchedulePanel({
     setDraftInputs(init);
     setSuggestOpenFor(null);
     setHighlightIndex(0);
-  }, [isEdit, cells]);
+    setConflictNotice(null);
+    setIsEdit(true);
+  }
 
   useEffect(() => {
     const onDown = (e) => {
@@ -286,14 +388,23 @@ export default function WeekSchedulePanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suggestions.length]);
 
+  function labelOfKey(cellKey) {
+    const [d, p] = cellKey.split("-");
+    return `${DAYS[Number(d)] ?? "?"} ${p}교시`;
+  }
+
   const onSave = async () => {
     if (!isEdit || hasErrors || !isDirty || savingSchedule) return;
 
     try {
       setSavingSchedule(true);
+      setConflictNotice(null);
 
+      // 내가 바꾼 칸만 추려서 저장 대상으로 만든다
       const changes = [];
-      const nextCells = cells.map((c) => {
+      const appliedByKey = new Map();
+
+      for (const c of cells) {
         const k = keyOf(c.dayIndex, c.periodKey);
         const di = draftInputs[k];
 
@@ -301,45 +412,75 @@ export default function WeekSchedulePanel({
         const nextResolvedAdminId = normalized === "" ? null : di?.resolvedAdminId ?? null;
 
         const currentShownAdminId = c?.admin?.id ?? null;
-        const actuallyChanged = currentShownAdminId !== nextResolvedAdminId;
+        if (currentShownAdminId === nextResolvedAdminId) continue;
 
-        if (!actuallyChanged) {
-          return c;
+        if (c.weeklyId == null) {
+          throw new Error("weeklyId가 없는 칸은 저장할 수 없어요.");
         }
 
         const desired = buildDesiredCellState(c, nextResolvedAdminId);
-        
-        if (c.weeklyId == null) {
-          throw new Error("weeklyId가 없는 칸은 저장할 수 없어요.");
-}
+
         changes.push({
-          weekly_id: c.weeklyId,
-          new_admin_id: desired.assignedAdminId,
-          is_substitute: desired.isSub,
+          cellKey: k,
+          body: {
+            weekly_id: c.weeklyId,
+            new_admin_id: desired.assignedAdminId,
+            is_substitute: desired.isSub,
+          },
         });
 
-        return {
+        appliedByKey.set(k, {
           ...c,
           admin: desired.admin,
           assignedAdminId: desired.assignedAdminId,
           isSub: desired.isSub,
-        };
-      });
+        });
+      }
 
       if (changes.length === 0) {
         resetEditUI();
         return;
       }
-      console.log(changes);
 
-      await Promise.all(
+      // 저장 직전에 서버 최신 상태를 한 번 더 확인한다.
+      // 내가 편집을 시작한 뒤 다른 사람이 같은 칸을 바꿨는지 보기 위한 것으로,
+      // 충돌이 나도 저장은 그대로 진행하고(내 값 우선) 어떤 칸을 덮어썼는지만 알려준다.
+      let latestCells = null;
+      try {
+        latestCells = fetchLatestCells ? await fetchLatestCells() : null;
+      } catch {
+        latestCells = null;
+      }
+
+      const conflicts = [];
+      if (Array.isArray(latestCells) && latestCells.length > 0) {
+        const latestByKey = new Map(
+          latestCells.map((c) => [keyOf(c.dayIndex, c.periodKey), c])
+        );
+
+        for (const change of changes) {
+          const baselineAdminId = originalMap.get(change.cellKey)?.admin?.id ?? null;
+          const serverCell = latestByKey.get(change.cellKey);
+          if (!serverCell) continue;
+
+          const serverAdminId = serverCell.admin?.id ?? null;
+          if (serverAdminId === baselineAdminId) continue;
+
+          conflicts.push({
+            cellKey: change.cellKey,
+            overwrittenName: serverCell.admin?.name ?? "(빈칸)",
+          });
+        }
+      }
+
+      const results = await Promise.allSettled(
         changes.map(async (change) => {
           const res = await fetch("/api/schedules/change", {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(change),
+            body: JSON.stringify(change.body),
           });
 
           const payload = await res.json().catch(() => null);
@@ -351,10 +492,47 @@ export default function WeekSchedulePanel({
           return payload;
         })
       );
+
+      const failedKeys = new Set();
+      let firstFailMessage = null;
+
+      results.forEach((r, i) => {
+        if (r.status !== "rejected") return;
+        failedKeys.add(changes[i].cellKey);
+        if (!firstFailMessage) firstFailMessage = r.reason?.message ?? null;
+      });
+
+      // 저장 결과를 화면에 반영.
+      // 내가 안 건드린 칸은 방금 받아온 서버 최신값을 쓰고,
+      // 저장에 실패한 칸도 서버값으로 되돌린다.
+      const base = Array.isArray(latestCells) && latestCells.length > 0 ? latestCells : cells;
+      const nextCells = base.map((c) => {
+        const k = keyOf(c.dayIndex, c.periodKey);
+        const applied = appliedByKey.get(k);
+        if (!applied || failedKeys.has(k)) return c;
+        return applied;
+      });
+
       setCells(nextCells);
       setOriginalCells(nextCells);
       setCellsForWeek(nextCells);
       resetEditUI();
+
+      const notices = [];
+      if (conflicts.length > 0) {
+        const list = conflicts
+          .map((c) => `${labelOfKey(c.cellKey)}(${c.overwrittenName})`)
+          .join(", ");
+        notices.push(`다른 사람이 먼저 바꿔둔 ${list}을(를) 내 값으로 덮어썼어요.`);
+      }
+      if (failedKeys.size > 0) {
+        const list = [...failedKeys].map(labelOfKey).join(", ");
+        notices.push(
+          `${list}은(는) 저장하지 못했어요${firstFailMessage ? ` (${firstFailMessage})` : ""}.`
+        );
+      }
+
+      setConflictNotice(notices.length > 0 ? notices.join(" ") : null);
     } catch (e) {
       window.alert(e?.message || "시간표 저장 중 오류가 발생했어요.");
     } finally {
@@ -364,6 +542,7 @@ export default function WeekSchedulePanel({
 
   const onCancel = () => {
     if (!isEdit) return;
+    setConflictNotice(null);
 
     if (isDirty) {
       const ok = window.confirm("변경사항이 있어요. 취소하면 모두 사라져요. 취소할까요?");
@@ -443,7 +622,7 @@ export default function WeekSchedulePanel({
               </button>
             </div>
           ) : (
-            <button className={`${styles.editBtn} ${isEdit ? styles.editOn : ""}`} onClick={() => setIsEdit(true)} title="시간표 수정">
+            <button className={`${styles.editBtn} ${isEdit ? styles.editOn : ""}`} onClick={startEdit} title="시간표 수정">
               ✏️
             </button>
           )}
@@ -452,6 +631,19 @@ export default function WeekSchedulePanel({
       className={styles.panelFull}
       bodyClassName={styles.noScrollBody}
     >
+      {conflictNotice && (
+        <div className={styles.conflictNotice}>
+          <span>{conflictNotice}</span>
+          <button
+            type="button"
+            className={styles.conflictClose}
+            onClick={() => setConflictNotice(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {isEdit && (
         <div className={styles.editHint}>
           (Tab: 후보 적용 / ↑↓: 후보 이동 / Esc: 현재 칸 원복)

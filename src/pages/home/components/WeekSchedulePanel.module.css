@@ -328,3 +328,32 @@
 .substitute {
   border: 2px dashed rgba(0, 0, 0, 0.18) !important;
 }
+
+.conflictNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(180, 90, 0, 0.28);
+  background: rgba(255, 176, 32, 0.12);
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(120, 60, 0, 0.95);
+}
+
+.conflictClose {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 4px;
+  color: rgba(120, 60, 0, 0.7);
+}
+
+.conflictClose:hover {
+  color: rgba(120, 60, 0, 1);
+}
