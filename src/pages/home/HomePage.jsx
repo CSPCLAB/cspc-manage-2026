@@ -198,6 +198,7 @@ export default function HomePage() {
   const [rankingError, setRankingError] = useState(null);
 
   const [week, setWeek] = useState(1);
+  const [todayWeek, setTodayWeek] = useState(null);
   const [totalWeeks, setTotalWeeks] = useState(1);
   const [scheduleCache, setScheduleCache] = useState({});
   const [loadingSchedule, setLoadingSchedule] = useState(false);
@@ -360,6 +361,7 @@ export default function HomePage() {
 
         setScheduleCache(initialCache);
         setWeek(todayWeekNumber);
+        setTodayWeek(todayWeekNumber);
         setDidInitScheduleWeek(true);
 
         const remainingWeeks = validWeekNumbers.filter((weekNumber) => weekNumber !== todayWeekNumber);
@@ -397,23 +399,30 @@ export default function HomePage() {
   useEffect(() => {
     if (!adminPool.length) return undefined;
 
+    const targetWeeks = todayWeek != null && todayWeek !== week ? [week, todayWeek] : [week];
+
     const timer = setInterval(() => {
-      fetchWeekSchedule(week, adminPool)
-        .then((scheduleData) => {
-          setScheduleCache((prev) => ({
-            ...prev,
-            [week]: scheduleData,
-          }));
-        })
-        .catch(() => {
-        });
+      targetWeeks.forEach((targetWeek) => {
+        fetchWeekSchedule(targetWeek, adminPool)
+          .then((scheduleData) => {
+            setScheduleCache((prev) => ({
+              ...prev,
+              [targetWeek]: scheduleData,
+            }));
+          })
+          .catch(() => {
+          });
+      });
     }, 30000);
 
     return () => clearInterval(timer);
-  }, [adminPool, week, fetchWeekSchedule]);
+  }, [adminPool, week, todayWeek, fetchWeekSchedule]);
 
   const currentWeekSchedule = scheduleCache[week] ?? null;
   const currentWeekCells = currentWeekSchedule?.cells ?? [];
+
+  // 관리 인증은 보고 있는 주차와 무관하게 항상 '오늘이 속한 주차' 기준으로 동작해야 함
+  const todayWeekCells = todayWeek != null ? scheduleCache[todayWeek]?.cells ?? [] : [];
 
   return (
     <div ref={outerRef} className={styles.pageOuter}>
@@ -444,8 +453,8 @@ export default function HomePage() {
             <div className={styles.leftTop}>
               <NoticePanel />
               <AdminAuthPanel
-                week={week}
-                cells={currentWeekCells}
+                week={todayWeek}
+                cells={todayWeekCells}
                 loadingSchedule={loadingSchedule}
                 scheduleError={scheduleError}
               />
